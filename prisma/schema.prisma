@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BaggageType {
+  PERSONAL_ITEM
+  CABIN_BAG
+  CHECKED_BAG
+}
+
+enum RuleStatus {
+  VERIFIED
+  UNVERIFIED
+}
+
+enum PackingCategory {
+  CLOTHING
+  FOOTWEAR
+  ELECTRONICS
+  ACCESSORIES
+}
+
+model Airline {
+  id              String          @id @default(cuid())
+  name            String
+  slug            String          @unique
+  country         String?
+  website         String?
+  active          Boolean         @default(true)
+  baggageRules    BaggageRule[]
+  configurations  Configuration[]
+}
+
+model BaggageRule {
+  id           String       @id @default(cuid())
+  airlineId    String
+  baggageType  BaggageType
+  fareName     String?
+  maxHeightCm  Float?
+  maxWidthCm   Float?
+  maxDepthCm   Float?
+  maxWeightKg  Float?
+  conditions   String?
+  sourceUrl    String?
+  verifiedAt   DateTime?
+  status       RuleStatus   @default(UNVERIFIED)
+  airline      Airline      @relation(fields: [airlineId], references: [id], onDelete: Cascade)
+  configurations Configuration[]
+
+  @@index([airlineId, baggageType, status])
+}
+
+model PackingItem {
+  id                    String          @id @default(cuid())
+  name                  String          @unique
+  category              PackingCategory
+  estimatedVolumeLiters Float
+  active                Boolean         @default(true)
+}
+
+model Configuration {
+  id                       String       @id @default(cuid())
+  tripDays                 Int
+  tripType                 String
+  airlineId                String?
+  baggageRuleId            String?
+  packingStyle             String
+  selectedItems            Json
+  calculatedCapacityLiters Float?
+  createdAt                DateTime     @default(now())
+  airline                  Airline?     @relation(fields: [airlineId], references: [id], onDelete: SetNull)
+  baggageRule              BaggageRule? @relation(fields: [baggageRuleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
