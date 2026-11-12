@@ -132,11 +132,16 @@ export function normalizeUcpProduct(product: UcpProduct, kind: ProductKind = "ba
 
 /* ------------------------------------------------------------------ transport */
 
+/** False in production when neither agent credentials nor a profile are set: catalog calls would fail. */
+export function catalogConfigured() {
+  return process.env.NODE_ENV !== "production" || !!process.env.SHOPIFY_UCP_AGENT_PROFILE || hasCatalogCredentials();
+}
+
 function agentProfile() {
   const configured = process.env.SHOPIFY_UCP_AGENT_PROFILE;
   if (configured) return configured;
   // Authenticated agents can use Shopify's hosted profile (see the Dev Dashboard "search catalog" guide).
-  if (process.env.NODE_ENV === "production" && !hasCatalogCredentials()) {
+  if (!catalogConfigured()) {
     throw new Error("Set SHOPIFY_CLIENT_ID/SHOPIFY_CLIENT_SECRET (Dev Dashboard agent) or SHOPIFY_UCP_AGENT_PROFILE.");
   }
   return EXAMPLE_PROFILE;

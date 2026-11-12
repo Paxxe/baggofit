@@ -4,7 +4,7 @@ import { cacheLife } from "next/cache";
 import { ArrowRight, ArrowUpRight, Star, Store } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
 import type { BackpackProduct } from "@/lib/products/provider";
-import { ShopifyGlobalCatalogProvider } from "@/lib/products/shopify-catalog";
+import { catalogConfigured, ShopifyGlobalCatalogProvider } from "@/lib/products/shopify-catalog";
 import { localizePrices, ratesOrNull } from "@/lib/products/exchange";
 
 interface Showcase {
@@ -68,6 +68,7 @@ function ProductRail({ title, products, locale, moreHref, moreLabel }: { title: 
 
 export async function HomeShowcase({ locale }: { locale: Locale }) {
   const it = locale === "it";
+  if (!catalogConfigured()) return null; // no Shopify env vars (e.g. a first deploy): skip the rail, keep the build green
   let showcase: Showcase;
   try {
     showcase = await getShowcase(locale);
