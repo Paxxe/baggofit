@@ -55,13 +55,16 @@ export function ConsentBanner() {
   if (!visible) return null;
   return (
     <div className="consent-banner" role="dialog" aria-live="polite" aria-label={it ? "Preferenze cookie" : "Cookie preferences"}>
-      <Cookie size={26} className="consent-icon" aria-hidden="true" />
-      <p>
-        {it
-          ? "Usiamo cookie di analisi per capire come viene usato il sito e migliorarlo. Li attiviamo solo se accetti."
-          : "We use analytics cookies to understand how the site is used and improve it. They're only set if you accept."}{" "}
-        <Link href={it ? "/it/privacy" : "/en/privacy"}>{it ? "Privacy" : "Privacy"}</Link>
-      </p>
+      <span className="consent-icon" aria-hidden="true"><Cookie size={30} strokeWidth={2.2} /></span>
+      <div className="consent-copy">
+        <strong>{it ? "Un biscotto prima di partire?" : "A cookie before you go?"}</strong>
+        <p>
+          {it
+            ? "Usiamo cookie di analisi per capire come viene usato il sito e migliorarlo. Li attiviamo solo se accetti."
+            : "We use analytics cookies to understand how the site is used and improve it. They're only set if you accept."}{" "}
+          <Link href={it ? "/it/privacy" : "/en/privacy"}>{it ? "Leggi la privacy" : "Read the privacy notice"}</Link>
+        </p>
+      </div>
       <div className="consent-actions">
         <button type="button" className="consent-button" onClick={() => choose("denied")}>{it ? "Rifiuta" : "Reject"}</button>
         <button type="button" className="consent-button is-accept" onClick={() => choose("granted")}>{it ? "Accetta" : "Accept"}</button>
