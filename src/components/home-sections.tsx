@@ -63,7 +63,7 @@ export function HomePlanners({ locale }: { locale: Locale }) {
       <div className="cartoon-section-heading"><p className="cartoon-eyebrow"><span />{it ? "Due strumenti, un obiettivo" : "Two tools, one goal"}</p><h2>{it ? "Zaino o valigia? Partiamo da qui." : "Backpack or suitcase? Start here."}</h2></div>
       <div className="home-planner-grid">
         {planners.map((planner) => (
-          <Link key={planner.href} href={planner.href} className={`home-planner home-planner-${planner.tone}`}>
+          <Link key={planner.href} href={planner.href} className={`home-planner home-planner-${planner.tone}`} data-track="cta_click" data-track-location="home_planners" data-track-target={planner.tone === "tomato" ? "backpack" : "luggage"}>
             <div className="home-planner-visual">{planner.visual}</div>
             <div className="home-planner-copy">
               <h3>{planner.title}</h3>

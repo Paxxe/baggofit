@@ -4,6 +4,8 @@ import "./globals.css";
 import "./configurator.css";
 import "./cartoon.css";
 import "./cartoon-motion.css";
+import { ClickTracker, ConsentBanner } from "@/components/analytics";
+import { GTM_ID, gtmHeadScript } from "@/lib/analytics";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -23,7 +25,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      {GTM_ID && <head><script id="gtm" dangerouslySetInnerHTML={{ __html: gtmHeadScript(GTM_ID) }} /></head>}
+      <body>
+        {GTM_ID && <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`} height="0" width="0" style={{ display: "none", visibility: "hidden" }} /></noscript>}
+        {children}
+        {GTM_ID && <><ConsentBanner /><ClickTracker /></>}
+      </body>
     </html>
   );
 }

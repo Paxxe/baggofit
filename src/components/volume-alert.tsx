@@ -1,5 +1,12 @@
+"use client";
+
+import { useEffect } from "react";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { VolumeStatus } from "@/lib/calculators/airline-compatibility";
+import { track, type Planner } from "@/lib/analytics";
+
+// Last alert sent, so re-renders and the compact copy don't send it again.
+let lastTracked = "";
 
 const fmt = (value: number, locale: "en" | "it") => value.toLocaleString(locale === "it" ? "it-IT" : "en-GB", { maximumFractionDigits: 0 });
 
@@ -16,6 +23,7 @@ export function VolumeAlert({
   allowance,
   size,
   compact = false,
+  planner,
 }: {
   locale: "en" | "it";
   status: VolumeStatus;
@@ -25,7 +33,16 @@ export function VolumeAlert({
   allowance: string;
   size: string;
   compact?: boolean;
+  /** Set to send `volume_alert` to analytics when the list goes near/over the allowance. */
+  planner?: Planner;
 }) {
+  useEffect(() => {
+    const key = `${planner}|${status}|${airline}|${limitLiters}`;
+    if (!planner || compact || status === "ok" || key === lastTracked) return;
+    lastTracked = key;
+    track("volume_alert", { planner, status, airline, limit_liters: Math.round(limitLiters), needed_liters: Math.round(neededLiters) });
+  }, [planner, compact, status, airline, limitLiters, neededLiters]);
+
   // One decimal for the need, so "19.6 of ~20 L" never reads as "20 of 20".
   const needed = neededLiters.toLocaleString(locale === "it" ? "it-IT" : "en-GB", { maximumFractionDigits: 1 });
   const limit = fmt(limitLiters, locale);

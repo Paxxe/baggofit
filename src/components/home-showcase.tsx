@@ -38,7 +38,7 @@ async function getShowcase(locale: Locale): Promise<Showcase> {
   return { backpacks: onePerStore(backpacks, 4), trolleys: onePerStore(trolleys, 4), stores };
 }
 
-function ProductRail({ title, products, locale, moreHref, moreLabel }: { title: string; products: BackpackProduct[]; locale: Locale; moreHref: string; moreLabel: string }) {
+function ProductRail({ title, products, locale, moreHref, moreLabel, listName }: { title: string; products: BackpackProduct[]; locale: Locale; moreHref: string; moreLabel: string; listName: string }) {
   const it = locale === "it";
   const price = (product: BackpackProduct) =>
     product.price === undefined ? null : new Intl.NumberFormat(it ? "it-IT" : "en-GB", { style: "currency", currency: product.currency ?? "EUR", maximumFractionDigits: product.price % 1 ? 2 : 0 }).format(product.price);
@@ -47,7 +47,7 @@ function ProductRail({ title, products, locale, moreHref, moreLabel }: { title: 
       <div className="showcase-rail-head"><h3>{title}</h3><Link href={moreHref}>{moreLabel}<ArrowRight size={15} /></Link></div>
       <div className="showcase-grid">
         {products.map((product) => (
-          <a key={product.id} className="showcase-card" href={product.productUrl} target="_blank" rel="noopener noreferrer">
+          <a key={product.id} className="showcase-card" href={product.productUrl} target="_blank" rel="noopener noreferrer" data-track="store_click" data-track-list-name={listName} data-track-store={product.brand} data-track-item-name={product.title} data-track-price={product.price} data-track-currency={product.currency}>
             <div className="showcase-image">
               {product.imageUrl && <Image src={product.imageUrl} alt={product.title} fill sizes="(max-width: 700px) 50vw, 260px" />}
               {product.capacityLiters !== undefined && <span className="showcase-liters">{product.capacityEstimated ? "~" : ""}{product.capacityLiters} L</span>}
@@ -97,8 +97,8 @@ export async function HomeShowcase({ locale }: { locale: Locale }) {
           {showcase.stores.length > featuredStores.length && <span className="showcase-store-chip is-more">+{showcase.stores.length - featuredStores.length}</span>}
         </p>
       </div>
-      {showcase.backpacks.length > 0 && <ProductRail locale={locale} title={it ? "Zaini da viaggio 20–30 L" : "Travel backpacks 20–30 L"} products={showcase.backpacks} moreHref={`/${locale}/backpack-configurator`} moreLabel={it ? "Trova il tuo" : "Find yours"} />}
-      {showcase.trolleys.length > 0 && <ProductRail locale={locale} title={it ? "Trolley da cabina 55×40×20" : "Cabin trolleys 55×40×20"} products={showcase.trolleys} moreHref={`/${locale}/luggage-configurator`} moreLabel={it ? "Trova il tuo" : "Find yours"} />}
+      {showcase.backpacks.length > 0 && <ProductRail listName="home_showcase_backpacks" locale={locale} title={it ? "Zaini da viaggio 20–30 L" : "Travel backpacks 20–30 L"} products={showcase.backpacks} moreHref={`/${locale}/backpack-configurator`} moreLabel={it ? "Trova il tuo" : "Find yours"} />}
+      {showcase.trolleys.length > 0 && <ProductRail listName="home_showcase_trolleys" locale={locale} title={it ? "Trolley da cabina 55×40×20" : "Cabin trolleys 55×40×20"} products={showcase.trolleys} moreHref={`/${locale}/luggage-configurator`} moreLabel={it ? "Trova il tuo" : "Find yours"} />}
       <p className="showcase-note">{it ? "Prezzi e disponibilità possono cambiare: verifica sempre sul sito del negozio." : "Prices and availability can change: always check on the store's site."}</p>
     </section>
   );

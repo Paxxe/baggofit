@@ -14,7 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }));
 
   const routes = ["", "/backpack-configurator", "/luggage-configurator", "/guides", "/about", "/privacy", "/airlines"].flatMap((route) => localized(route));
-  const guideRoutes = guides.flatMap((guide) => localized(`/guides/${guide.slug}`));
+  const guideRoutes = guides.flatMap((guide) => localized(`/guides/${guide.slug}`, guide.updated ?? guide.published));
   // Only airline pages with verified rules are indexable (the others are noindex).
   const airlineRoutes = airlines.flatMap((airline) => {
     const policy = getVerifiedPolicy(airline.id);

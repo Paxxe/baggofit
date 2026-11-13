@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useState } from "react";
+import { track } from "@/lib/analytics";
 import { z } from "zod";
 import { AlertTriangle, ArrowLeft, ArrowRight, Backpack, Check, RotateCcw, Search, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
@@ -211,7 +212,7 @@ export function LuggageConfigurator({ locale, messages }: { locale: Locale; mess
   const airlineName = airlines.find((airline) => airline.id === state.airlineId)?.name ?? "";
   const volumeAlert = (compact = false) =>
     volumeLimit && volumeState && verifiedSize ? (
-      <VolumeAlert locale={locale} status={volumeState} neededLiters={estimate.recommendedCapacityLiters} limitLiters={volumeLimit} airline={airlineName} allowance={t.cabin} size={`${verifiedSize.height} × ${verifiedSize.width} × ${verifiedSize.depth} cm`} compact={compact} />
+      <VolumeAlert locale={locale} status={volumeState} neededLiters={estimate.recommendedCapacityLiters} limitLiters={volumeLimit} airline={airlineName} allowance={t.cabin} size={`${verifiedSize.height} × ${verifiedSize.width} × ${verifiedSize.depth} cm`} compact={compact} planner="luggage" />
     ) : null;
 
   const criteria: BackpackSearchCriteria = {
@@ -227,9 +228,12 @@ export function LuggageConfigurator({ locale, messages }: { locale: Locale; mess
       const next = { ...current, ...patch };
       return next.customized ? next : { ...next, quantities: plannedQuantities(next) };
     });
-  const changeQuantity = (id: string, delta: number) =>
+  const changeQuantity = (id: string, delta: number) => {
+    if (delta > 0 && !(state.quantities[id] ?? 0)) track("packing_item_add", { planner: "luggage", item_id: id });
     setState((current) => ({ ...current, customized: true, quantities: { ...current.quantities, [id]: Math.max(0, (current.quantities[id] ?? 0) + delta) } }));
+  };
   const restart = () => {
+    track("configurator_restart", { planner: "luggage" });
     setState(initialState());
     setStep(0);
     localStorage.removeItem(storageKey);
@@ -237,6 +241,37 @@ export function LuggageConfigurator({ locale, messages }: { locale: Locale; mess
 
   const steps = ["kind", "trip", "airline", "packing", "result"] as const;
   const current = steps[step];
+  /** Moves between steps and reports the funnel (configurator_step, configurator_complete). */
+  const goTo = (next: number) => {
+    setStep(next);
+    const name = steps[next];
+    if (!name || next === step) return;
+    track("configurator_step", { planner: "luggage", step: name, step_number: next + 1, mode: kind });
+    if (name === "result") {
+      track("configurator_complete", {
+        planner: "luggage",
+        mode: kind,
+        trip_days: state.tripDays,
+        season: state.season,
+        airline: state.airlineId,
+        allowance_kg: allowanceKg ?? undefined,
+        liters_min: estimate.suggestedCapacityRangeLiters.min,
+        liters_max: estimate.suggestedCapacityRangeLiters.max,
+        size: estimate.size,
+        total_kg: Math.round(estimate.totalWeightKg * 10) / 10,
+        over_weight: allowanceKg !== null && overBy > 0,
+        volume_status: volumeState,
+      });
+    }
+  };
+  const chooseKind = (option: LuggageKind) => {
+    if (state.kind === null) track("configurator_start", { planner: "luggage", mode: option });
+    replan({ kind: option, allowanceKg: null });
+  };
+  const chooseAirline = (airlineId: string) => {
+    if (airlineId !== state.airlineId) track("airline_select", { planner: "luggage", airline: airlineId, verified: airlineId !== "none" && !!getVerifiedPolicy(airlineId) });
+    replan({ airlineId, allowanceKg: null });
+  };
   const allowanceOptions = kind === "cabin-trolley" ? cabinAllowances : checkedAllowances;
   const filteredAirlines = airlines.filter((airline) => airline.name.toLowerCase().includes(query.toLowerCase()));
   const weightNote = allowanceKg === null ? null : overBy > 0 ? t.overWeight(overBy) : overBy > -allowanceKg * 0.1 ? t.nearWeight : t.okWeight;
@@ -253,7 +288,7 @@ export function LuggageConfigurator({ locale, messages }: { locale: Locale; mess
           {current === "kind" && <div className="step-content">
             <p className="step-kicker">01 / {t.steps[0]}</p><h2>{t.kindTitle}</h2><p className="step-help">{t.kindHelp}</p>
             <div className="purpose-grid">
-              {(["cabin-trolley", "checked-suitcase"] as const).map((option, index) => <button key={option} type="button" className={`purpose-choice ${state.kind === option ? "is-selected" : ""}`} aria-pressed={state.kind === option} onClick={() => replan({ kind: option, allowanceKg: null })}>
+              {(["cabin-trolley", "checked-suitcase"] as const).map((option, index) => <button key={option} type="button" className={`purpose-choice ${state.kind === option ? "is-selected" : ""}`} aria-pressed={state.kind === option} onClick={() => chooseKind(option)}>
                 <span className="purpose-number">0{index + 1}</span><strong>{option === "cabin-trolley" ? t.cabin : t.checked}</strong><span>{option === "cabin-trolley" ? t.cabinHelp : t.checkedHelp}</span><span className="radio-dot" />
               </button>)}
             </div>
@@ -274,8 +309,8 @@ export function LuggageConfigurator({ locale, messages }: { locale: Locale; mess
             <p className="step-kicker">03 / {t.steps[2]}</p><h2>{t.airlineTitle}</h2><p className="step-help">{t.airlineHelp}</p>
             <label className="search-field"><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchAirline} /></label>
             <div className="airline-options" role="radiogroup" aria-label={t.airlineTitle}>
-              <button type="button" role="radio" aria-checked={state.airlineId === "none"} className={`airline-choice no-airline ${state.airlineId === "none" ? "is-selected" : ""}`} onClick={() => replan({ airlineId: "none", allowanceKg: null })}><span className="radio-dot" /><span>{t.noAirline}</span></button>
-              {filteredAirlines.map((airline) => <button type="button" role="radio" aria-checked={state.airlineId === airline.id} key={airline.id} className={`airline-choice ${state.airlineId === airline.id ? "is-selected" : ""}`} onClick={() => replan({ airlineId: airline.id, allowanceKg: null })}><span className="radio-dot" /><span>{airline.name}</span>{getVerifiedPolicy(airline.id) ? <span className="rule-state is-verified">{t.verified}</span> : <span className="rule-state">{t.unverified}</span>}</button>)}
+              <button type="button" role="radio" aria-checked={state.airlineId === "none"} className={`airline-choice no-airline ${state.airlineId === "none" ? "is-selected" : ""}`} onClick={() => chooseAirline("none")}><span className="radio-dot" /><span>{t.noAirline}</span></button>
+              {filteredAirlines.map((airline) => <button type="button" role="radio" aria-checked={state.airlineId === airline.id} key={airline.id} className={`airline-choice ${state.airlineId === airline.id ? "is-selected" : ""}`} onClick={() => chooseAirline(airline.id)}><span className="radio-dot" /><span>{airline.name}</span>{getVerifiedPolicy(airline.id) ? <span className="rule-state is-verified">{t.verified}</span> : <span className="rule-state">{t.unverified}</span>}</button>)}
             </div>
             <h3 className="sub-question">{t.allowance}</h3>
             <p className="field-hint">{kind === "cabin-trolley" ? t.allowanceHelpCabin : t.allowanceHelpChecked}</p>
@@ -332,10 +367,10 @@ export function LuggageConfigurator({ locale, messages }: { locale: Locale; mess
           </div>}
 
           <div className="config-nav">
-            {step > 0 ? <button className="button button-outline" type="button" onClick={() => setStep(step - 1)}><ArrowLeft size={16} />{t.back}</button> : <span />}
+            {step > 0 ? <button className="button button-outline" type="button" onClick={() => goTo(step - 1)}><ArrowLeft size={16} />{t.back}</button> : <span />}
             {current === "result"
               ? <button className="button button-outline" type="button" onClick={restart}><RotateCcw size={15} />{t.restart}</button>
-              : <button className="button button-dark" type="button" disabled={current === "kind" && state.kind === null} onClick={() => setStep(Math.min(step + 1, steps.length - 1))}>{current === "packing" ? t.calculate : t.next}<ArrowRight size={16} /></button>}
+              : <button className="button button-dark" type="button" disabled={current === "kind" && state.kind === null} onClick={() => goTo(Math.min(step + 1, steps.length - 1))}>{current === "packing" ? t.calculate : t.next}<ArrowRight size={16} /></button>}
           </div>
         </section>
 

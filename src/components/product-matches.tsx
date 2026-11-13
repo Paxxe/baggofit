@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { productItem, pushEcommerce, track, trackProductClick } from "@/lib/analytics";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Laptop, MapPin, Ruler, Search, SlidersHorizontal, Sparkles, Star, Weight, X } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
 import type { BackpackProduct, BackpackSearchCriteria, MatchReason, ProductKind } from "@/lib/products/provider";
@@ -135,8 +136,9 @@ const priceBands: Record<ProductKind, [number | undefined, number | undefined][]
 };
 const noFilters: ProductFilters = { sort: "relevance" };
 
-export function ProductMatches({ locale, criteria, heading, lead }: { locale: Locale; criteria: BackpackSearchCriteria; /** Overrides for editorial use (articles) */ heading?: string; lead?: string }) {
+export function ProductMatches({ locale, criteria, heading, lead, listName }: { locale: Locale; criteria: BackpackSearchCriteria; /** Overrides for editorial use (articles) */ heading?: string; lead?: string; /** Analytics list name (where the results are shown) */ listName?: string }) {
   const kind = criteria.productKind ?? "backpack";
+  const list = listName ?? `configurator_${kind}`;
   const t = copy[locale];
   const [state, setState] = useState<State>({ status: "loading" });
   // Country picked by the visitor (remembered); otherwise the server detects it.
@@ -151,12 +153,16 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
   const [facets, setFacets] = useState<{ facets: ProductFacets; unfilteredTotal: number } | null>(null);
   const searchKey = useMemo(() => JSON.stringify({ ...criteria, locale, country: selectedCountry, filters, ...(searchText ? { text: searchText } : {}) }), [criteria, locale, selectedCountry, filters, searchText]);
   const filtersActive = filters.priceMin !== undefined || filters.priceMax !== undefined || !!filters.brand || !!filters.fitsOnly || (filters.sort ?? "relevance") !== "relevance";
-  const updateFilters = (patch: Partial<ProductFilters>) => setFilters((current) => ({ ...current, ...patch }));
+  const updateFilters = (patch: Partial<ProductFilters>) => {
+    for (const [filter, value] of Object.entries(patch)) track("product_filter", { product_kind: kind, filter, value: value === undefined ? "any" : String(value), list_name: list });
+    setFilters((current) => ({ ...current, ...patch }));
+  };
   const [pageState, setPageState] = useState({ key: searchKey, page: 1 });
   const page = pageState.key === searchKey ? pageState.page : 1;
   const body = useMemo(() => JSON.stringify({ ...JSON.parse(searchKey), page, pageSize: PAGE_SIZE }), [searchKey, page]);
 
   const goToPage = (next: number) => {
+    track("product_page", { product_kind: kind, page: next, list_name: list });
     setPageState({ key: searchKey, page: next });
     sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -166,6 +172,7 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
   }, [locale]);
 
   const chooseCountry = (country: string) => {
+    track("country_change", { country, list_name: list });
     setSelectedCountry(country);
     try {
       window.localStorage.setItem(countryStorageKey, country);
@@ -186,6 +193,9 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
         if (data.market) setMarket(data.market);
         setFacets({ facets: data.facets, unfilteredTotal: data.unfilteredTotal });
         setState({ status: "ready", products: data.products, total: data.total, page: data.page, pageCount: data.pageCount });
+        const sent = JSON.parse(body) as { text?: string; page: number };
+        track("product_results", { product_kind: kind, list_name: list, results: data.total, page: data.page, country: data.market?.country, search_term: sent.text, empty: data.total === 0 });
+        pushEcommerce("view_item_list", { item_list_name: list, items: data.products.map((product, index) => productItem(product, (data.page - 1) * PAGE_SIZE + index, list, kind)) });
       } catch (error) {
         if (!controller.signal.aborted) setState({ status: "error" });
         if (!(error instanceof DOMException)) console.warn("[product-matches]", error);
@@ -195,7 +205,7 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [body]);
+  }, [body, kind, list]);
 
   const currency = market?.currency ?? "EUR";
   const formatMoney = (value: number) => new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
@@ -222,7 +232,7 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
         {market && (market.source === "ip" || market.source === "language") && !selectedCountry && <span>{t.detected}</span>}
         {state.status === "ready" && <strong className="product-count">{filtersActive && facets ? t.ofTotal(state.total, facets.unfilteredTotal) : t.found(state.total)}</strong>}
       </div>
-      <form className="product-search" role="search" onSubmit={(event) => { event.preventDefault(); setSearchText(draftText.trim()); }}>
+      <form className="product-search" role="search" onSubmit={(event) => { event.preventDefault(); const term = draftText.trim(); if (term) track("search", { search_term: term, product_kind: kind, list_name: list }); setSearchText(term); }}>
         <label htmlFor="product-search-input" className="sr-only">{t.searchLabel}</label>
         <Search size={16} />
         <input id="product-search-input" type="search" value={draftText} maxLength={60} placeholder={t.searchPlaceholder} onChange={(event) => setDraftText(event.target.value)} />
@@ -255,7 +265,7 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
           </div>
         </div>
         {criteria.dimensionsCm && facets.facets.fitsCount > 0 && <label className="filter-toggle"><input type="checkbox" checked={!!filters.fitsOnly} onChange={(event) => updateFilters({ fitsOnly: event.target.checked || undefined })} />{t.fitsOnly(facets.facets.fitsCount)}</label>}
-        {filtersActive && <button type="button" className="filter-clear" onClick={() => setFilters(noFilters)}><X size={14} />{t.clearFilters}</button>}
+        {filtersActive && <button type="button" className="filter-clear" onClick={() => { track("product_filter", { product_kind: kind, filter: "clear_all", list_name: list }); setFilters(noFilters); }}><X size={14} />{t.clearFilters}</button>}
       </div>}
       {state.status === "ready" && state.pageCount > 1 && <div className="product-pager-top" aria-label={t.pagination}>
         <button type="button" className="page-arrow" aria-label={t.previous} onClick={() => goToPage(state.page - 1)} disabled={state.page <= 1}><ArrowLeft size={18} strokeWidth={2.6} /></button>
@@ -267,7 +277,7 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
       {state.status === "error" && <p className="product-matches-message">{t.error}</p>}
       {state.status === "ready" && state.products.length === 0 && <p className="product-matches-message">{t.empty}</p>}
       {state.status === "ready" && state.products.length > 0 && <div className="product-grid">
-        {state.products.map((product) => <article className="product-card" key={product.id}>
+        {state.products.map((product, index) => <article className="product-card" key={product.id}>
           <div className="product-image">
             {product.imageUrl ? <Image src={product.imageUrl} alt={product.title} fill sizes="(max-width: 700px) 50vw, 220px" /> : null}
             {product.capacityLiters !== undefined && <span className="product-capacity">{product.capacityEstimated ? "~" : ""}{product.capacityLiters} L</span>}
@@ -286,7 +296,7 @@ export function ProductMatches({ locale, criteria, heading, lead }: { locale: Lo
               <strong>{product.originalPrice !== undefined ? "~" : ""}{formatPrice(product)}</strong>
               {product.originalPrice !== undefined && product.originalCurrency && <small title={t.convertedHint}>{new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-US", { style: "currency", currency: product.originalCurrency, maximumFractionDigits: product.originalPrice % 1 ? 2 : 0 }).format(product.originalPrice)} · {t.converted}</small>}
             </span>
-            {product.productUrl && <a href={product.productUrl} target="_blank" rel="noopener noreferrer">{t.view}<ArrowUpRight size={14} /></a>}
+            {product.productUrl && <a href={product.productUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackProductClick(product, (state.page - 1) * PAGE_SIZE + index, list, kind)}>{t.view}<ArrowUpRight size={14} /></a>}
           </div>
         </article>)}
       </div>}

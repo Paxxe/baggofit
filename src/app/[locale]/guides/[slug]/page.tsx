@@ -107,7 +107,7 @@ export default async function GuideDetail({ params }: { params: Promise<{ locale
           </table></div>}
           {section.tip && <aside className="guide-tip"><Lightbulb size={18} /><p>{section.tip}</p></aside>}
           {section.productPicks && guide.products && <div className="guide-products">
-            <ProductMatches locale={language} criteria={guide.products.criteria} heading={guide.products.heading[language]} lead={guide.products.intro[language]} />
+            <ProductMatches locale={language} criteria={guide.products.criteria} heading={guide.products.heading[language]} lead={guide.products.intro[language]} listName={`guide_${slug}`} />
           </div>}
         </section>)}
 
@@ -118,7 +118,7 @@ export default async function GuideDetail({ params }: { params: Promise<{ locale
 
         {guide.cta && <div className="guide-cta">
           <p>{guide.cta.text[language]}</p>
-          <Link className="button button-primary" href={`/${locale}${guide.cta.href}`}>{guide.cta.label[language]}<ArrowRight size={16} /></Link>
+          <Link className="button button-primary" href={`/${locale}${guide.cta.href}`} data-track="cta_click" data-track-location={`guide_${slug}`} data-track-target={guide.cta.href}>{guide.cta.label[language]}<ArrowRight size={16} /></Link>
         </div>}
       </article>
     </main>

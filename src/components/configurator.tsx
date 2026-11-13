@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { startTransition, useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 import { z } from "zod";
 import { ArrowLeft, ArrowRight, Check, Copy, RotateCcw, Search, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
@@ -154,6 +155,7 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
         allowance={baggageCategories.find((category) => category.id === selectedRule.baggageType)?.label[locale] ?? ""}
         size={`${selectedRule.maxHeightCm} × ${selectedRule.maxWidthCm} × ${selectedRule.maxDepthCm} cm`}
         compact={compact}
+        planner="backpack"
       />
     ) : null;
   const productCriteria: BackpackSearchCriteria = {
@@ -176,11 +178,39 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
   const currentStep = stepNames[step] ?? "purpose";
   const stepTitles = config.searchType === "everyday" ? t.stepsEveryday : t.stepsTrip;
 
+  /** Moves between steps and reports the funnel (configurator_step, configurator_complete). */
+  function goTo(next: number) {
+    setStep(next);
+    const name = stepNames[next];
+    if (!name || next === step) return;
+    track("configurator_step", { planner: "backpack", step: name, step_number: next + 1, mode: config.searchType });
+    if (name === "result") {
+      track("configurator_complete", {
+        planner: "backpack",
+        mode: config.searchType,
+        trip_days: config.searchType === "trip" ? config.tripDays : undefined,
+        airline: config.airlineId === "none" ? "none" : config.airlineId,
+        baggage_type: config.airlineId === "none" ? undefined : config.baggageType,
+        liters_min: estimate.suggestedCapacityRangeLiters.min,
+        liters_max: estimate.suggestedCapacityRangeLiters.max,
+        items_count: Object.values(config.quantities).reduce((sum, quantity) => sum + quantity, 0),
+        volume_status: volumeState,
+        laptop: config.hasLaptop,
+      });
+    }
+  }
+
+  function selectAirline(airlineId: string) {
+    update({ airlineId });
+    if (airlineId !== config.airlineId) track("airline_select", { planner: "backpack", airline: airlineId, verified: airlineId !== "none" && !!getVerifiedPolicy(airlineId) });
+  }
+
   function update(patch: Partial<ConfigState>) {
     setConfig((current) => ({ ...current, ...patch }));
   }
 
   function selectPurpose(searchType: "trip" | "everyday") {
+    if (config.searchType === null) track("configurator_start", { planner: "backpack", mode: searchType });
     setConfig((current) => ({
       ...current,
       searchType,
@@ -211,6 +241,7 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
   }
 
   function changeQuantity(id: string, delta: number) {
+    if (delta > 0 && !(config.quantities[id] ?? 0)) track("packing_item_add", { planner: "backpack", item_id: id });
     setConfig((current) => ({
       ...current,
       packingCustomized: true,
@@ -233,11 +264,13 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
     const encoded = window.btoa(encodeURIComponent(JSON.stringify(config))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
     url.searchParams.set("config", encoded);
     await navigator.clipboard.writeText(url.toString());
+    track("share_link_copy", { planner: "backpack" });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
   function restart() {
+    track("configurator_restart", { planner: "backpack" });
     setConfig(initialConfig());
     setStep(0);
     localStorage.removeItem(storageKey);
@@ -279,8 +312,8 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
             <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><h2>{t.airlineTitle}</h2><p className="step-help">{t.airlineHelp}</p>
             <label className="search-field"><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchAirline} /></label>
             <div className="airline-options" role="radiogroup" aria-label={t.airlineTitle}>
-              <button type="button" role="radio" aria-checked={config.airlineId === "none"} className={`airline-choice no-airline ${config.airlineId === "none" ? "is-selected" : ""}`} onClick={() => update({ airlineId: "none" })}><span className="radio-dot" /><span>{t.noAirline}</span><span className="rule-state">{locale === "it" ? "Senza restrizioni" : "No restrictions"}</span></button>
-              {filteredAirlines.map((airline) => <button type="button" role="radio" aria-checked={config.airlineId === airline.id} className={`airline-choice ${config.airlineId === airline.id ? "is-selected" : ""}`} key={airline.id} onClick={() => update({ airlineId: airline.id })}><span className="radio-dot" /><span>{airline.name}</span>{getVerifiedPolicy(airline.id) ? <span className="rule-state is-verified">{locale === "it" ? "✓ Misure verificate" : "✓ Sizes verified"}</span> : <span className="rule-state">{locale === "it" ? "Regole non verificate" : "Rules unverified"}</span>}</button>)}
+              <button type="button" role="radio" aria-checked={config.airlineId === "none"} className={`airline-choice no-airline ${config.airlineId === "none" ? "is-selected" : ""}`} onClick={() => selectAirline("none")}><span className="radio-dot" /><span>{t.noAirline}</span><span className="rule-state">{locale === "it" ? "Senza restrizioni" : "No restrictions"}</span></button>
+              {filteredAirlines.map((airline) => <button type="button" role="radio" aria-checked={config.airlineId === airline.id} className={`airline-choice ${config.airlineId === airline.id ? "is-selected" : ""}`} key={airline.id} onClick={() => selectAirline(airline.id)}><span className="radio-dot" /><span>{airline.name}</span>{getVerifiedPolicy(airline.id) ? <span className="rule-state is-verified">{locale === "it" ? "✓ Misure verificate" : "✓ Sizes verified"}</span> : <span className="rule-state">{locale === "it" ? "Regole non verificate" : "Rules unverified"}</span>}</button>)}
               {filteredAirlines.length === 0 && <p className="empty-search">{locale === "it" ? "Nessuna compagnia trovata." : "No airlines found."}</p>}
             </div>
             {config.airlineId !== "none" && <div className="field-block"><label className="field-label" htmlFor="baggage-type">{t.baggageType}</label><select id="baggage-type" value={config.baggageType} onChange={(event) => update({ baggageType: event.target.value })}>{baggageCategories.map((category) => <option key={category.id} value={category.id}>{category.label[locale]}</option>)}</select></div>}
@@ -316,10 +349,10 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
             <div className="dimensions-block"><h3>{t.dimensionTitle}</h3><p className="step-help">{t.dimensionHelp}</p><div className="dimension-fields">{(["height", "width", "depth", "weight"] as const).map((key) => <label key={key}><span>{t[key]}</span><input type="number" min="0" step="0.1" inputMode="decimal" value={config.dimensions[key]} onChange={(event) => update({ dimensions: { ...config.dimensions, [key]: event.target.value } })} /></label>)}</div><p className={`fit-status is-${compatibility.status}`}><span className="status-dot" />{compatibility.status === "cannot-verify" ? t.unverified : compatibility.status === "compatible" ? (locale === "it" ? "Compatibile" : "Compatible") : (locale === "it" ? "Non compatibile" : "Not compatible")}</p></div></>}
             {config.searchType === "everyday" && <div className="result-note"><Check size={17} /><p>{t.noAirlineCheck}</p></div>}
             <details className="assumptions-details"><summary>{t.assumptions}<span>+</span></summary><ul>{assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul><p>{t.margin}: {Math.round(estimate.capacityMargin * 100)}% · {t.preferenceSummary}: {t.backpackTypes[config.backpackType]}</p></details>
-            <div className="result-actions"><button className="button button-outline" type="button" onClick={() => setStep(stepNames.indexOf("packing"))}><ArrowLeft size={15} />{t.editPacking}</button>{config.searchType === "trip" && <button className="button button-outline" type="button" onClick={() => setStep(stepNames.indexOf("airline"))}>{t.changeAirline}</button>}<button className="button button-dark" type="button" onClick={copyShareLink}><Copy size={15} />{copied ? t.copied : t.copy}</button></div>
+            <div className="result-actions"><button className="button button-outline" type="button" onClick={() => goTo(stepNames.indexOf("packing"))}><ArrowLeft size={15} />{t.editPacking}</button>{config.searchType === "trip" && <button className="button button-outline" type="button" onClick={() => goTo(stepNames.indexOf("airline"))}>{t.changeAirline}</button>}<button className="button button-dark" type="button" onClick={copyShareLink}><Copy size={15} />{copied ? t.copied : t.copy}</button></div>
           </div>}
 
-          <div className="config-nav">{step > 0 && currentStep !== "result" ? <button className="button button-outline" type="button" onClick={() => setStep(step - 1)}><ArrowLeft size={16} />{t.back}</button> : currentStep === "result" ? <button className="button button-outline" type="button" onClick={restart}><RotateCcw size={15} />{t.restart}</button> : <span />}{currentStep !== "result" && <button className="button button-dark" type="button" disabled={currentStep === "purpose" && config.searchType === null} onClick={() => setStep(Math.min(step + 1, stepNames.length - 1))}>{currentStep === "preferences" ? t.calculate : t.next}<ArrowRight size={16} /></button>}</div>
+          <div className="config-nav">{step > 0 && currentStep !== "result" ? <button className="button button-outline" type="button" onClick={() => goTo(step - 1)}><ArrowLeft size={16} />{t.back}</button> : currentStep === "result" ? <button className="button button-outline" type="button" onClick={restart}><RotateCcw size={15} />{t.restart}</button> : <span />}{currentStep !== "result" && <button className="button button-dark" type="button" disabled={currentStep === "purpose" && config.searchType === null} onClick={() => goTo(Math.min(step + 1, stepNames.length - 1))}>{currentStep === "preferences" ? t.calculate : t.next}<ArrowRight size={16} /></button>}</div>
         </section>
         <aside className="config-aside" aria-label={config.searchType === "everyday" ? t.everydaySummary : config.searchType === "trip" ? t.summary : t.purposeTitle}>
           <div className="aside-top"><span className="aside-label">{config.searchType === "everyday" ? t.everydaySummary : config.searchType === "trip" ? t.summary : t.purposeTitle}</span><span className="aside-dot" /></div>

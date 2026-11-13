@@ -81,7 +81,7 @@ export function CartoonHome({ locale, messages }: { locale: Locale; messages: Me
           chapters={t.story}
           scrollLabel={t.scroll}
           actions={<>
-            <Link className="cartoon-button cartoon-button-primary" href={`/${locale}/backpack-configurator`}>{t.cta}<ArrowRight size={17} /></Link>
+            <Link className="cartoon-button cartoon-button-primary" href={`/${locale}/backpack-configurator`} data-track="cta_click" data-track-location="home_hero" data-track-target="backpack">{t.cta}<ArrowRight size={17} /></Link>
             <a className="cartoon-text-link" href="#how">{t.secondary}<ArrowDown size={15} /></a>
           </>}
         />
@@ -117,8 +117,8 @@ export function CartoonHome({ locale, messages }: { locale: Locale; messages: Me
         </section>
 
         <section className="cartoon-last-call"><p className="cartoon-eyebrow"><span />{t.finalEyebrow}</p><h2>{t.finalTitle}</h2><div className="cartoon-final-actions">
-          <Link className="cartoon-button cartoon-button-ink" href={`/${locale}/backpack-configurator`}><Backpack size={19} />{t.finalBackpack}<ArrowRight size={17} /></Link>
-          <Link className="cartoon-button cartoon-button-sun" href={`/${locale}/luggage-configurator`}><Luggage size={19} />{t.finalLuggage}<ArrowRight size={17} /></Link>
+          <Link className="cartoon-button cartoon-button-ink" href={`/${locale}/backpack-configurator`} data-track="cta_click" data-track-location="home_final" data-track-target="backpack"><Backpack size={19} />{t.finalBackpack}<ArrowRight size={17} /></Link>
+          <Link className="cartoon-button cartoon-button-sun" href={`/${locale}/luggage-configurator`} data-track="cta_click" data-track-location="home_final" data-track-target="luggage"><Luggage size={19} />{t.finalLuggage}<ArrowRight size={17} /></Link>
         </div><p className="cartoon-official">{t.official}</p></section>
       </main>
       <SiteFooter locale={locale} messages={messages} />
