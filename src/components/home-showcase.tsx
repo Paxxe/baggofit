@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cacheLife } from "next/cache";
+import { connection } from "next/server";
 import { ArrowRight, ArrowUpRight, Star, Store } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
 import type { BackpackProduct } from "@/lib/products/provider";
@@ -69,6 +70,9 @@ function ProductRail({ title, products, locale, moreHref, moreLabel, listName }:
 export async function HomeShowcase({ locale }: { locale: Locale }) {
   const it = locale === "it";
   if (!catalogConfigured()) return null; // no Shopify env vars (e.g. a first deploy): skip the rail, keep the build green
+  // Request time only: at build every page prerenders in parallel and the catalog answers 429,
+  // failing the deploy. The searches stay cached for hours, so visitors don't wait on Shopify.
+  await connection();
   let showcase: Showcase;
   try {
     showcase = await getShowcase(locale);
