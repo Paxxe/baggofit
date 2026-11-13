@@ -14,7 +14,7 @@ export function parseEcbRates(xml: string): EurRates {
 
 /** ECB daily reference rates, cached for hours (they change once a day). */
 export async function getEurRates(): Promise<EurRates> {
-  "use cache";
+  "use cache: remote";
   cacheLife("hours");
   const response = await fetch(ECB_DAILY, { signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`ECB rates → HTTP ${response.status}`);

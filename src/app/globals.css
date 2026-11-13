@@ -529,7 +529,7 @@ h1, h2, h3 { letter-spacing: -0.015em; }
   .footer-main { grid-template-columns: 1fr; gap: 14px; }
   .footer-links { justify-content: flex-start; gap: 12px 20px; }
   .footer-bottom { flex-direction: column; gap: 4px; }
-  .config-page { padding: 16px 12px 120px; }
+  .config-page { padding: 16px 8px 120px; }
   .config-intro { margin: 18px 0 24px; }
   .config-intro > p:last-child { font-size: 14px; }
   .config-layout { grid-template-columns: 1fr; gap: 16px; }
@@ -565,7 +565,7 @@ h1, h2, h3 { letter-spacing: -0.015em; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
-/* cartoon theme v34 */
+/* cartoon theme v35 */
 
 /* ───────────── Verified airline rules ───────────── */
 .verified-badge { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -14px 0 26px; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 99px; background: var(--sun-soft); font-size: 14px; font-weight: 700; }

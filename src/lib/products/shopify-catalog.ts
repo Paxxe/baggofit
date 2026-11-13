@@ -15,7 +15,7 @@ import { getCatalogToken, hasCatalogCredentials } from "./shopify-auth";
 const CATALOG_ENDPOINT = "https://catalog.shopify.com/api/ucp/mcp";
 const EXAMPLE_PROFILE = "https://shopify.dev/ucp/agent-profiles/examples/2026-08-25/valid-with-capabilities.json";
 const PAGE_LIMIT = 50; // max allowed by search_catalog
-const MAX_CATALOG_PAGES = 4; // up to 200 candidates per query
+const MAX_CATALOG_PAGES = 2; // up to 100 candidates per query (×4 queries): each extra page is another ~0.5 s round trip
 const TIMEOUT_MS = 12_000;
 
 export interface CatalogMarket {
@@ -149,16 +149,36 @@ function agentProfile() {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Global Catalog rate limit: 5 requests per second per agent. Requests start as soon as a slot is
+ * free in the last second (per server instance), so searches can run in parallel without 429s.
+ */
+const RATE_LIMIT = 5;
+const recentStarts: number[] = [];
+async function catalogSlot() {
+  for (;;) {
+    const now = Date.now();
+    while (recentStarts.length && now - recentStarts[0] >= 1000) recentStarts.shift();
+    if (recentStarts.length < RATE_LIMIT) {
+      recentStarts.push(now);
+      return;
+    }
+    await sleep(1000 - (now - recentStarts[0]) + 5);
+  }
+}
+
 async function callCatalog<T>(tool: string, catalog: Record<string, unknown>, endpoint = CATALOG_ENDPOINT): Promise<T> {
   // The agent token is only ever sent to Shopify's Global Catalog, never to individual stores.
   const token = endpoint === CATALOG_ENDPOINT ? await getCatalogToken() : null;
-  const send = () =>
-    fetch(endpoint, {
+  const send = async () => {
+    if (endpoint === CATALOG_ENDPOINT) await catalogSlot();
+    return fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: tool, arguments: { meta: { "ucp-agent": { profile: agentProfile() } }, catalog } } }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
+  };
   let response = await send();
   // Rate limited: wait once (Retry-After if given, capped) and try again.
   if (response.status === 429) {
@@ -195,7 +215,9 @@ export function savedCatalogId(kind: ProductKind) {
 }
 
 export async function searchCatalogBackpacks(query: string, market: CatalogMarket, kind: ProductKind = "backpack"): Promise<CatalogBackpack[]> {
-  "use cache";
+  // Remote: shared by every server instance (in-memory "use cache" is per instance on Vercel,
+  // so repeat searches still went to Shopify). Queries are bucketed, so visitors share entries.
+  "use cache: remote";
   cacheTag("shopify-catalog");
 
   const products: UcpProduct[] = [];
@@ -231,7 +253,7 @@ export async function searchCatalogBackpacks(query: string, market: CatalogMarke
  * global catalog. A single page is enough: these catalogs are small and focused.
  */
 export async function searchStorefrontBackpacks(store: DirectStorefront, query: string, market: CatalogMarket, kind: ProductKind = "backpack"): Promise<CatalogBackpack[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("hours");
   cacheTag("shopify-catalog", `storefront:${store.url}`);
   const result = await callCatalog<SearchResult>(
@@ -345,7 +367,8 @@ export class ShopifyGlobalCatalogProvider implements ProductRecommendationProvid
         ...queries.map((query) => () => searchCatalogBackpacks(query, this.market, kind)),
         ...stores.map((store) => () => searchStorefrontBackpacks(store, queries[0], this.market, kind)),
       ],
-      2,
+      // Catalog calls are paced by catalogSlot(); store calls have their own limits.
+      6,
     );
     const failures = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failures.length === results.length) throw failures[0].reason;

@@ -162,10 +162,23 @@
   .floating-bag .bag-liters { font-size: 26px; }
   .aside-bag .packing-bag { width: 150px !important; }
   .result-bag-visual .packing-bag { width: 110px !important; }
-  .product-matches { padding: 16px; margin-inline: -4px; }
-  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .product-card h4 { font-size: 13px; }
-  .product-footer { flex-wrap: wrap; }
+  /* Mobile: the product box reaches the panel edges and the cards lose inner padding, so the
+     two columns get ~20% wider; square photos use the extra width. */
+  .product-matches { padding: 14px 10px; margin-inline: -4px; border-radius: 16px; }
+  .step-content .product-matches { margin-inline: -15px; }
+  .guide-products .product-matches { margin-inline: -12px; }
+  .product-matches-heading, .product-market, .product-search, .product-filters, .product-matches-message { margin-inline: 4px; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .product-card { gap: 5px; padding: 6px 8px 12px; border-radius: 14px; }
+  .product-card:hover { transform: none; }
+  .product-image { aspect-ratio: 1; margin: 0 -2px 2px; border-radius: 10px; }
+  .product-capacity { left: 6px; top: 6px; padding: 2px 8px; font-size: 12px; }
+  .product-brand { font-size: 10px; }
+  .product-card h4 { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .product-specs { gap: 4px 8px; font-size: 12px; }
+  .product-reasons li { padding: 2px 6px; font-size: 11px; border-radius: 6px; }
+  .product-footer { flex-wrap: wrap; gap: 4px; padding-top: 6px; }
+  .product-footer strong { font-size: 17px; }
 }
 @keyframes floating-bag-in { from { transform: translateY(120%) rotate(8deg); } to { transform: none; } }
 
@@ -224,7 +237,7 @@
 /* Denser grid so the bottom controls are reachable */
 .product-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 .product-image { aspect-ratio: 4 / 3; }
-@media (max-width: 680px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .product-image { aspect-ratio: 1; } }
 
 /* ───────────── Trolley & suitcase planner ───────────── */
 .beta-pill { margin-left: 4px; padding: 1px 8px; border: 2px solid var(--ink); border-radius: 99px; background: var(--sun); color: var(--ink); font-size: 11px; letter-spacing: 0.04em; }
