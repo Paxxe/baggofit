@@ -437,6 +437,28 @@ h1, h2, h3 { letter-spacing: -0.015em; }
 .content-columns > *:nth-child(4n + 4) { background: var(--tomato-soft); }
 .content-columns h2 { font-size: 20px; font-weight: 760; margin: 0 0 8px; }
 .content-columns p { color: var(--ink-soft); font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+
+/* About page */
+.about-page > h2 { margin-top: 64px; font-size: clamp(26px, 3vw, 34px); }
+.about-text { max-width: 760px; margin: 0 0 14px; font-size: 17px; line-height: 1.75; color: var(--ink-soft); }
+.about-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.about-ctas .button { gap: 10px; }
+.about-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.about-steps li { padding: 20px; border: 2px solid var(--ink); border-radius: 18px; background: var(--card); box-shadow: var(--shadow-sm); }
+.about-steps span { display: block; margin-bottom: 14px; font-size: 34px; line-height: 1; font-weight: 820; color: var(--tomato); letter-spacing: -0.03em; }
+.about-steps strong { display: block; margin-bottom: 6px; font-size: 17px; }
+.about-steps p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.about-final { margin-top: 72px; padding: 36px 28px; border: 2px solid var(--ink); border-radius: 24px; background: var(--sun); box-shadow: var(--shadow-lg); text-align: center; }
+.about-final h2 { margin: 0 0 20px; font-size: clamp(28px, 4vw, 44px); font-weight: 800; }
+.about-final .about-ctas { justify-content: center; }
+@media (max-width: 860px) {
+  .about-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .about-steps { grid-template-columns: 1fr; }
+  .about-ctas .button { width: 100%; justify-content: center; }
+  .about-page > h2 { margin-top: 48px; }
+}
 .airline-directory { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 30px; }
 .airline-card {
   position: relative;
@@ -565,7 +587,7 @@ h1, h2, h3 { letter-spacing: -0.015em; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
-/* cartoon theme v35 */
+/* cartoon theme v36 */
 
 /* ───────────── Verified airline rules ───────────── */
 .verified-badge { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -14px 0 26px; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 99px; background: var(--sun-soft); font-size: 14px; font-weight: 700; }
