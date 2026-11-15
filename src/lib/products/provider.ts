@@ -5,7 +5,10 @@ export type ProductKind = "backpack" | "cabin-trolley" | "checked-suitcase";
 export interface BackpackProduct {
   id: string;
   title: string;
+  /** Store (seller) name. */
   brand?: string;
+  /** The product's real brand, when recognised; used by the brand filter. */
+  maker?: string;
   imageUrl?: string;
   productUrl?: string;
   price?: number;

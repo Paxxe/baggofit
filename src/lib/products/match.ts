@@ -1,5 +1,6 @@
 import type { BackpackProduct, BackpackSearchCriteria, MatchReason } from "./provider";
 import type { CatalogBackpack } from "./extract";
+import { isEstablishedBrand } from "./brands";
 
 export type CatalogEntry = CatalogBackpack;
 
@@ -105,6 +106,8 @@ function scoreEntry(entry: CatalogEntry, criteria: BackpackSearchCriteria): Scor
   }
 
   if (entry.imageUrl) score += 2;
+  // A known maker (Osprey, Ferrino, Samsonite…) over an anonymous product, all else being equal.
+  if (isEstablishedBrand(entry.maker)) score += 6;
   // Foreign-currency prices rank a little lower (the store still ships here, e.g. Cotopaxi in USD).
   if (criteria.preferredCurrency && entry.currency && entry.currency !== criteria.preferredCurrency) score -= 5;
   // Keyword-stuffed marketplace titles are usually generic resellers rather than the maker's own store.
@@ -151,6 +154,7 @@ export function matchBackpacks(entries: readonly CatalogEntry[], criteria: Backp
     id: entry.id,
     title: entry.title,
     brand: entry.brand,
+    maker: entry.maker,
     imageUrl: entry.imageUrl,
     productUrl: variantLink(entry.url, variantId),
     price,

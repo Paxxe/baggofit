@@ -346,3 +346,19 @@
 .product-search-active button { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--tomato); font-size: 13px; font-weight: 750; text-decoration: underline; cursor: pointer; }
 .product-price { display: flex; flex-direction: column; line-height: 1.15; }
 .product-price small { font-size: 11px; font-weight: 650; color: var(--muted); }
+
+/* ───────────── Trekking mode ───────────── */
+.purpose-grid.purpose-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.purpose-choice.purpose-trekking { background: #e3f4e6; }
+.purpose-choice.purpose-trekking.is-selected { background: var(--tomato-soft); }
+.purpose-choice strong svg { vertical-align: -3px; margin-right: 6px; color: #2f8a4c; }
+.trek-options { grid-template-columns: 1fr; }
+.trek-options .option-row { align-items: flex-start; text-align: left; }
+.trek-options .option-row > span:last-child { display: grid; gap: 2px; }
+.trek-options .option-row small { font-size: 13px; font-weight: 500; color: var(--muted); line-height: 1.45; }
+@media (max-width: 1100px) {
+  .purpose-grid.purpose-grid-3 { grid-template-columns: 1fr; }
+  .purpose-grid.purpose-grid-3 .purpose-choice { min-height: 0; }
+}
+.product-store { display: flex; align-items: center; gap: 5px; margin: -2px 0 8px; font-size: 12px; color: var(--muted); }
+.product-store svg { flex: none; }

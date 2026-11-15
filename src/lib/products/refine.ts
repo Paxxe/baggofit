@@ -17,19 +17,23 @@ export interface ProductFacets {
   fitsCount: number;
 }
 
-/** Brands (most relevant first), price span and "confirmed fit" count over the full ranked list. */
-export function productFacets(products: readonly BackpackProduct[], maxBrands = 30): ProductFacets {
-  // Map keeps insertion order, i.e. each brand's best (first) position in the ranking.
+/** Real brands (alphabetical, with counts), price span and "confirmed fit" count over the full ranked list. */
+export function productFacets(products: readonly BackpackProduct[], maxBrands = 60): ProductFacets {
   const brandCounts = new Map<string, number>();
   const prices: number[] = [];
   let fitsCount = 0;
   for (const product of products) {
-    if (product.brand) brandCounts.set(product.brand, (brandCounts.get(product.brand) ?? 0) + 1);
+    // Only recognised brands: store names ("Free Time Store") aren't brands.
+    if (product.maker) brandCounts.set(product.maker, (brandCounts.get(product.maker) ?? 0) + 1);
     if (product.price !== undefined) prices.push(product.price);
     if (product.matchReasons?.includes("fits-airline-size")) fitsCount += 1;
   }
-  // Most relevant brands first: order of their best-ranked product.
-  const brands = [...brandCounts.entries()].map(([name, count]) => ({ name, count })).slice(0, maxBrands);
+  // Most common brands are kept, then listed alphabetically so a brand is easy to find.
+  const brands = [...brandCounts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, maxBrands)
+    .sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
   return { brands, priceRange: prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : null, fitsCount };
 }
 
@@ -38,7 +42,7 @@ export function refineProducts(products: readonly BackpackProduct[], filters: Pr
   const filtered = products.filter((product) => {
     if (filters.priceMin !== undefined && (product.price === undefined || product.price < filters.priceMin)) return false;
     if (filters.priceMax !== undefined && (product.price === undefined || product.price > filters.priceMax)) return false;
-    if (filters.brand && product.brand !== filters.brand) return false;
+    if (filters.brand && product.maker !== filters.brand) return false;
     if (filters.fitsOnly && !product.matchReasons?.includes("fits-airline-size")) return false;
     return true;
   });

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { productItem, pushEcommerce, track, trackProductClick } from "@/lib/analytics";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Laptop, MapPin, Ruler, Search, SlidersHorizontal, Sparkles, Star, Weight, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Laptop, MapPin, Ruler, SlidersHorizontal, Sparkles, Star, Store, Weight, X } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
 import type { BackpackProduct, BackpackSearchCriteria, MatchReason, ProductKind } from "@/lib/products/provider";
 import { supportedCountries, type CountrySource } from "@/lib/products/markets";
@@ -41,13 +41,9 @@ const copy = {
     clearFilters: "Clear filters",
     ofTotal: (shown: number, total: number) => `${shown} of ${total}`,
     filters: "Filters",
-    searchLabel: "Brand or model",
+    soldBy: "Sold by",
     converted: "converted",
     convertedHint: "Converted at today's ECB rate. The store may show a different amount (duties, shipping).",
-    searchPlaceholder: "e.g. Eastpak, Cotopaxi, Roncato",
-    searchButton: "Search",
-    searchFor: (text: string) => `Results for “${text}”`,
-    clearSearch: "Clear search",
     found: (count: number) => `${count} results`,
     pageOf: (page: number, pages: number) => `Page ${page} of ${pages}`,
     previous: "Previous",
@@ -88,13 +84,9 @@ const copy = {
     clearFilters: "Azzera filtri",
     ofTotal: (shown: number, total: number) => `${shown} di ${total}`,
     filters: "Filtri",
-    searchLabel: "Brand o modello",
+    soldBy: "Venduto da",
     converted: "convertito",
     convertedHint: "Convertito al cambio BCE di oggi. Il negozio può mostrare un importo diverso (dazi, spedizione).",
-    searchPlaceholder: "es. Eastpak, Cotopaxi, Roncato",
-    searchButton: "Cerca",
-    searchFor: (text: string) => `Risultati per “${text}”`,
-    clearSearch: "Annulla ricerca",
     found: (count: number) => `${count} risultati`,
     pageOf: (page: number, pages: number) => `Pagina ${page} di ${pages}`,
     previous: "Precedente",
@@ -147,11 +139,8 @@ export function ProductMatches({ locale, criteria, heading, lead, listName }: { 
   const sectionRef = useRef<HTMLElement>(null);
   // The page resets to 1 whenever the answers, language or country change.
   const [filters, setFilters] = useState<ProductFilters>(noFilters);
-  // Brand/model search runs on submit only (each search queries the catalog).
-  const [draftText, setDraftText] = useState("");
-  const [searchText, setSearchText] = useState("");
   const [facets, setFacets] = useState<{ facets: ProductFacets; unfilteredTotal: number } | null>(null);
-  const searchKey = useMemo(() => JSON.stringify({ ...criteria, locale, country: selectedCountry, filters, ...(searchText ? { text: searchText } : {}) }), [criteria, locale, selectedCountry, filters, searchText]);
+  const searchKey = useMemo(() => JSON.stringify({ ...criteria, locale, country: selectedCountry, filters }), [criteria, locale, selectedCountry, filters]);
   const filtersActive = filters.priceMin !== undefined || filters.priceMax !== undefined || !!filters.brand || !!filters.fitsOnly || (filters.sort ?? "relevance") !== "relevance";
   const updateFilters = (patch: Partial<ProductFilters>) => {
     for (const [filter, value] of Object.entries(patch)) track("product_filter", { product_kind: kind, filter, value: value === undefined ? "any" : String(value), list_name: list });
@@ -193,8 +182,7 @@ export function ProductMatches({ locale, criteria, heading, lead, listName }: { 
         if (data.market) setMarket(data.market);
         setFacets({ facets: data.facets, unfilteredTotal: data.unfilteredTotal });
         setState({ status: "ready", products: data.products, total: data.total, page: data.page, pageCount: data.pageCount });
-        const sent = JSON.parse(body) as { text?: string; page: number };
-        track("product_results", { product_kind: kind, list_name: list, results: data.total, page: data.page, country: data.market?.country, search_term: sent.text, empty: data.total === 0 });
+        track("product_results", { product_kind: kind, list_name: list, results: data.total, page: data.page, country: data.market?.country, empty: data.total === 0 });
         pushEcommerce("view_item_list", { item_list_name: list, items: data.products.map((product, index) => productItem(product, (data.page - 1) * PAGE_SIZE + index, list, kind)) });
       } catch (error) {
         if (!controller.signal.aborted) setState({ status: "error" });
@@ -232,13 +220,6 @@ export function ProductMatches({ locale, criteria, heading, lead, listName }: { 
         {market && (market.source === "ip" || market.source === "language") && !selectedCountry && <span>{t.detected}</span>}
         {state.status === "ready" && <strong className="product-count">{filtersActive && facets ? t.ofTotal(state.total, facets.unfilteredTotal) : t.found(state.total)}</strong>}
       </div>
-      <form className="product-search" role="search" onSubmit={(event) => { event.preventDefault(); const term = draftText.trim(); if (term) track("search", { search_term: term, product_kind: kind, list_name: list }); setSearchText(term); }}>
-        <label htmlFor="product-search-input" className="sr-only">{t.searchLabel}</label>
-        <Search size={16} />
-        <input id="product-search-input" type="search" value={draftText} maxLength={60} placeholder={t.searchPlaceholder} onChange={(event) => setDraftText(event.target.value)} />
-        <button type="submit" className="button button-dark">{t.searchButton}</button>
-      </form>
-      {searchText && <p className="product-search-active">{t.searchFor(searchText)} <button type="button" onClick={() => { setSearchText(""); setDraftText(""); }}><X size={14} />{t.clearSearch}</button></p>}
       {facets && (facets.unfilteredTotal > 0 || filtersActive) && <div className="product-filters" aria-label={t.filters}>
         <div className="filter-field">
           <label htmlFor="product-sort"><SlidersHorizontal size={14} />{t.sortBy}</label>
@@ -246,13 +227,13 @@ export function ProductMatches({ locale, criteria, heading, lead, listName }: { 
             {(Object.keys(t.sorts) as ProductSort[]).map((sort) => <option key={sort} value={sort}>{t.sorts[sort]}</option>)}
           </select>
         </div>
-        <div className="filter-field">
+        {(facets.facets.brands.length > 0 || filters.brand) && <div className="filter-field">
           <label htmlFor="product-brand">{t.brand}</label>
           <select id="product-brand" value={filters.brand ?? ""} onChange={(event) => updateFilters({ brand: event.target.value || undefined })}>
             <option value="">{t.allBrands}</option>
             {facets.facets.brands.map((brand) => <option key={brand.name} value={brand.name}>{brand.name} ({brand.count})</option>)}
           </select>
-        </div>
+        </div>}
         <div className="filter-field filter-prices" role="group" aria-label={t.price}>
           <span className="filter-label">{t.price}</span>
           <div className="price-chips">
@@ -282,7 +263,7 @@ export function ProductMatches({ locale, criteria, heading, lead, listName }: { 
             {product.imageUrl ? <Image src={product.imageUrl} alt={product.title} fill sizes="(max-width: 700px) 50vw, 220px" /> : null}
             {product.capacityLiters !== undefined && <span className="product-capacity">{product.capacityEstimated ? "~" : ""}{product.capacityLiters} L</span>}
           </div>
-          <p className="product-brand">{product.brand}</p>
+          <p className="product-brand">{product.maker ?? product.brand}</p>
           <h4>{product.title}</h4>
           <div className="product-specs">
             {product.laptopInches && <span><Laptop size={13} />{product.laptopInches}&quot;</span>}
@@ -290,6 +271,7 @@ export function ProductMatches({ locale, criteria, heading, lead, listName }: { 
             {product.rating && <span className="product-rating"><Star size={13} />{product.rating.value.toLocaleString(locale === "it" ? "it-IT" : "en-US", { maximumFractionDigits: 1 })} ({product.rating.count})</span>}
             {product.dimensions && <span><Ruler size={13} />{Math.round(product.dimensions.height)}×{Math.round(product.dimensions.width)}×{Math.round(product.dimensions.depth)} cm</span>}
           </div>
+          {product.maker && product.brand && product.maker !== product.brand && <p className="product-store"><Store size={12} />{t.soldBy} {product.brand}</p>}
           <ul className="product-reasons">{product.matchReasons?.map((reason) => <li className={`reason-${reason}`} key={reason}>{t.reasons[reason]}</li>)}</ul>
           <div className="product-footer">
             <span className="product-price">

@@ -24,7 +24,10 @@ export interface CapacityEstimate {
   assumptions: string[];
 }
 
-const styleMargins: Record<PackingStyle, number> = {
+/** Extra margin for trekking: tents, sleeping bags and stoves pack less efficiently than clothes. */
+export const TREKKING_EXTRA_MARGIN = 0.15;
+
+export const styleMargins: Record<PackingStyle, number> = {
   minimalist: 0.15,
   balanced: 0.25,
   "extra-space": 0.4,

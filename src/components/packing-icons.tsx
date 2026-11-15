@@ -219,6 +219,119 @@ const icons: Record<string, ReactNode> = {
       <path d="M11 29 L17 28 M41 29 L47 28" stroke={C.cobaltSoft} strokeWidth={3} strokeLinecap="round" />
     </>
   ),
+  /* ── Trekking gear ── */
+  "rain-shell": (
+    <>
+      <Shape d="M22 10 Q22 3 32 3 Q42 3 42 10 L54 15 L58 50 L49 51 L46 30 L46 58 L18 58 L18 30 L15 51 L6 50 L10 15 Z" fill={C.tomato} />
+      <path d="M32 12 V58" {...line} fill="none" />
+      <path d="M24 12 Q32 18 40 12" fill="none" {...line} />
+      <path d="M22 38 L26 36 M42 38 L38 36" {...line} />
+      <path d="M22 22 V32" {...shine} />
+    </>
+  ),
+  fleece: (
+    <>
+      <Shape d="M22 9 L10 15 L6 49 L15 50 L18 28 L18 57 L46 57 L46 28 L49 50 L58 49 L54 15 L42 9 Q32 15 22 9 Z" fill={C.cobaltSoft} />
+      <path d="M32 12 V30" {...line} fill="none" />
+      <circle cx={32} cy={13} r={2.5} fill={C.sun} {...line} strokeWidth={2} />
+      {[[24, 38], [32, 44], [40, 38], [26, 50], [38, 50]].map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.6} fill={C.cobalt} />)}
+    </>
+  ),
+  "base-layer": (
+    <>
+      <Shape d="M24 9 L12 14 L8 52 L16 53 L19 28 L19 57 L45 57 L45 28 L48 53 L56 52 L52 14 L40 9 Q32 15 24 9 Z" fill={C.navy} />
+      <path d="M19 36 H45 M19 44 H45" stroke={C.sun} strokeWidth={3} />
+      <path d="M24 9 L12 14 L8 52 L16 53 L19 28 L19 57 L45 57 L45 28 L48 53 L56 52 L52 14 L40 9 Q32 15 24 9 Z" fill="none" {...line} />
+    </>
+  ),
+  "hat-gloves": (
+    <>
+      <Shape d="M6 34 Q6 12 24 12 Q42 12 42 34 Z" fill={C.tomato} />
+      <Shape d="M4 32 H44 V40 H4 Z" fill={C.sun} />
+      <circle cx={24} cy={9} r={5} fill={C.white} {...line} />
+      <Shape d="M42 40 Q42 30 48 30 Q50 22 54 26 L56 32 Q60 32 60 40 V54 Q60 58 56 58 H46 Q42 58 42 54 Z" fill={C.cobalt} />
+      <path d="M42 46 H60" {...line} />
+    </>
+  ),
+  "sun-kit": (
+    <>
+      <Shape d="M4 36 Q4 30 14 30 Q16 14 28 14 Q40 14 42 30 Q52 30 52 36 Q52 40 28 40 Q4 40 4 36 Z" fill={C.sun} />
+      <path d="M14 30 H42" stroke={C.tomato} strokeWidth={4} />
+      <Shape d="M46 30 H58 V58 Q58 60 56 60 H48 Q46 60 46 58 Z" fill={C.white} />
+      <Shape d="M48 22 H56 V30 H48 Z" fill={C.tomato} />
+      <path d="M49 38 H55 M49 44 H55" stroke={C.sun} strokeWidth={3} strokeLinecap="round" />
+    </>
+  ),
+  headlamp: (
+    <>
+      <path d="M8 34 Q8 14 32 14 Q56 14 56 34" stroke={C.cobalt} strokeWidth={7} fill="none" strokeLinecap="round" />
+      <path d="M8 34 Q8 14 32 14 Q56 14 56 34" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" transform="translate(0 4)" opacity={0.25} />
+      <Shape d="M20 24 H44 Q48 24 48 28 V40 Q48 44 44 44 H20 Q16 44 16 40 V28 Q16 24 20 24 Z" fill={C.navy} />
+      <circle cx={32} cy={34} r={7} fill={C.sun} {...line} />
+      <path d="M22 52 L18 60 M32 52 V61 M42 52 L46 60" stroke={C.sun} strokeWidth={3} strokeLinecap="round" />
+    </>
+  ),
+  "first-aid": (
+    <>
+      <Shape d="M10 18 Q10 14 14 14 H50 Q54 14 54 18 V52 Q54 56 50 56 H14 Q10 56 10 52 Z" fill={C.tomato} />
+      <Shape d="M24 8 H40 V14 H24 Z" fill={C.white} />
+      <path d="M32 24 V46 M21 35 H43" stroke={C.white} strokeWidth={7} strokeLinecap="round" />
+      <path d="M15 22 V30" {...shine} />
+    </>
+  ),
+  food: (
+    <>
+      <Shape d="M10 22 Q10 16 16 16 H48 Q54 16 54 22 V30 H10 Z" fill={C.brown} />
+      <Shape d="M10 30 H54 V50 Q54 56 48 56 H16 Q10 56 10 50 Z" fill={C.sun} />
+      <path d="M18 38 H30 M18 45 H40" stroke={C.brown} strokeWidth={3} strokeLinecap="round" />
+      <path d="M20 21 L44 21" {...shine} />
+    </>
+  ),
+  water: (
+    <>
+      <Shape d="M32 4 Q50 26 50 40 Q50 58 32 58 Q14 58 14 40 Q14 26 32 4 Z" fill={C.cobalt} />
+      <path d="M24 38 Q24 48 32 50" {...shine} />
+    </>
+  ),
+  "hut-liner": (
+    <>
+      <Shape d="M14 6 H50 Q54 6 54 10 V54 Q54 58 50 58 H14 Q10 58 10 54 V10 Q10 6 14 6 Z" fill={C.cream} />
+      <Shape d="M10 6 H54 V20 H10 Z" fill={C.cobaltSoft} />
+      <path d="M18 30 H46 M18 38 H46 M18 46 H38" stroke={C.grey} strokeWidth={3} strokeLinecap="round" />
+    </>
+  ),
+  "sleeping-bag": (
+    <>
+      <Shape d="M14 12 Q14 4 32 4 Q50 4 50 12 V52 Q50 60 32 60 Q14 60 14 52 Z" fill={C.tomato} />
+      {[18, 28, 38, 48].map((y) => <path key={y} d={`M14 ${y} Q32 ${y + 4} 50 ${y}`} {...line} fill="none" />)}
+      <path d="M20 14 V24" {...shine} />
+    </>
+  ),
+  "sleeping-mat": (
+    <>
+      <Shape d="M20 6 H44 V58 H20 Z" fill={C.sun} />
+      {[14, 22, 30, 38, 46].map((y) => <path key={y} d={`M20 ${y} H44`} stroke={INK} strokeWidth={2.5} />)}
+      <path d="M14 18 H50 M14 44 H50" stroke={C.cobalt} strokeWidth={4} strokeLinecap="round" />
+    </>
+  ),
+  tent: (
+    <>
+      <Shape d="M32 8 L58 54 H6 Z" fill={C.cobalt} />
+      <Shape d="M32 26 L42 54 H22 Z" fill={C.sun} />
+      <path d="M32 8 V4 M2 54 H62" {...line} />
+      <path d="M28 18 L16 42" {...shine} />
+    </>
+  ),
+  stove: (
+    <>
+      <Shape d="M12 20 H52 V44 Q52 50 46 50 H18 Q12 50 12 44 Z" fill={C.grey} />
+      <path d="M52 26 H60" {...line} />
+      <path d="M12 26 H52" {...line} />
+      <Shape d="M24 50 H40 V60 H24 Z" fill={C.cobalt} />
+      <path d="M26 14 Q24 8 28 4 M36 14 Q34 8 38 4" stroke={C.tomato} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <path d="M18 30 V40" {...shine} />
+    </>
+  ),
 };
 
 const tints: Record<string, string> = {

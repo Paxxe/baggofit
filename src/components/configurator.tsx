@@ -4,11 +4,11 @@ import Link from "next/link";
 import { startTransition, useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Check, Copy, RotateCcw, Search, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Mountain, RotateCcw, Search, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
-import { backpackItems as packingItems, packingCategories, suggestedQuantity } from "@/lib/data/packing-items";
+import { backpackItems, packingCategories, suggestedQuantity, suggestedTrekking, trekkingCategories, trekkingItems, trekSeasons, trekTypes, type TrekSeason, type TrekType } from "@/lib/data/packing-items";
 import { airlines, baggageCategories, getAirlineRules, getVerifiedPolicy } from "@/lib/data/airlines";
-import { estimateBackpackCapacity, type PackingStyle } from "@/lib/calculators/backpack-capacity";
+import { estimateBackpackCapacity, styleMargins, TREKKING_EXTRA_MARGIN, type PackingStyle } from "@/lib/calculators/backpack-capacity";
 import { checkAirlineCompatibility, maxVolumeLiters, volumeStatus } from "@/lib/calculators/airline-compatibility";
 import { VolumeAlert } from "@/components/volume-alert";
 import type { Messages } from "@/lib/i18n";
@@ -24,7 +24,9 @@ const laptopInches = [13, 14, 15, 16, 17];
 
 const storageKey = "luggagefit-config-v1";
 const configSchema = z.object({
-  searchType: z.enum(["trip", "everyday"]).nullable(),
+  searchType: z.enum(["trip", "everyday", "trekking"]).nullable(),
+  trekType: z.enum(["day-hike", "hut-to-hut", "camping"]).default("hut-to-hut"),
+  trekSeason: z.enum(["summer", "shoulder", "winter"]).default("summer"),
   tripDays: z.number().int().min(1).max(365),
   tripType: z.number().int().min(0).max(4),
   airlineId: z.string(),
@@ -41,7 +43,7 @@ const configSchema = z.object({
 type ConfigState = z.infer<typeof configSchema>;
 
 function suggestedPacking(days: number, tripType: number): Record<string, number> {
-  const quantities = Object.fromEntries(packingItems.map((item) => [item.id, suggestedQuantity(item.id, days)]));
+  const quantities = Object.fromEntries(backpackItems.map((item) => [item.id, suggestedQuantity(item.id, days)]));
   if (tripType === 1) {
     quantities.shirt = Math.max(quantities.shirt, Math.ceil(days / 3));
     quantities["formal-shoes"] = 1;
@@ -58,7 +60,7 @@ function suggestedPacking(days: number, tripType: number): Record<string, number
 }
 
 function suggestedEverydayPacking(): Record<string, number> {
-  const quantities = Object.fromEntries(packingItems.map((item) => [item.id, 0]));
+  const quantities = Object.fromEntries(backpackItems.map((item) => [item.id, 0]));
   quantities.chargers = 1;
   quantities["power-bank"] = 1;
   quantities.documents = 1;
@@ -76,12 +78,19 @@ function initialConfig(): ConfigState {
     baggageType: "personal-item",
     quantities: suggestedPacking(5, 4),
     packingCustomized: false,
+    trekType: "hut-to-hut",
+    trekSeason: "summer",
     backpackType: 1,
     packingStyle: 1,
     hasLaptop: false,
     laptopSize: 1,
     dimensions: { height: "", width: "", depth: "", weight: "" },
   };
+}
+
+/** Switching to trekking: hiking pack, no airline, a gear list for the kind of trek. */
+function trekkingDefaults(days: number, trekType: TrekType, trekSeason: TrekSeason) {
+  return { searchType: "trekking" as const, airlineId: "none", backpackType: 3, hasLaptop: false, trekType, trekSeason, packingCustomized: false, quantities: suggestedTrekking(days, trekType, trekSeason) };
 }
 
 export function Configurator({ locale, messages }: { locale: Locale; messages: Messages }) {
@@ -101,10 +110,15 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
         if (parsed.success) startTransition(() => setConfig(parsed.data));
       } else {
         const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          const parsed = configSchema.safeParse(JSON.parse(saved));
-          if (parsed.success) startTransition(() => setConfig(parsed.data));
-        }
+        const parsed = saved ? configSchema.safeParse(JSON.parse(saved)) : null;
+        const base = parsed?.success ? parsed.data : initialConfig();
+        // Links from trekking pages open the planner already in trekking mode.
+        if (new URLSearchParams(window.location.search).get("mode") === "trekking" && base.searchType !== "trekking") {
+          startTransition(() => {
+            setConfig({ ...base, ...trekkingDefaults(base.tripDays, base.trekType, base.trekSeason) });
+            setStep(1);
+          });
+        } else if (parsed?.success) startTransition(() => setConfig(parsed.data));
       }
     } catch {
       localStorage.removeItem(storageKey);
@@ -116,14 +130,19 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
     if (loaded) localStorage.setItem(storageKey, JSON.stringify(config));
   }, [config, loaded]);
 
+  const trekking = config.searchType === "trekking";
+  const packingItems = trekking ? trekkingItems : backpackItems;
+  const packingStyle = (["minimalist", "balanced", "extra-space"] as PackingStyle[])[config.packingStyle];
   const selectedAirline = airlines.find((airline) => airline.id === config.airlineId);
   const selectedRule = selectedAirline
     ? getAirlineRules(selectedAirline.id).find((rule) => rule.baggageType === config.baggageType) ?? null
     : null;
   const estimate = estimateBackpackCapacity({
     usageMode: config.searchType === "everyday" ? "everyday" : "trip",
-    tripDays: config.searchType === "everyday" ? undefined : config.tripDays,
-    packingStyle: (["minimalist", "balanced", "extra-space"] as PackingStyle[])[config.packingStyle],
+    tripDays: config.searchType === "everyday" ? undefined : trekking && config.trekType === "day-hike" ? 1 : config.tripDays,
+    packingStyle,
+    // Bulky outdoor gear packs less efficiently than clothes.
+    capacityMargin: trekking ? styleMargins[packingStyle] + TREKKING_EXTRA_MARGIN : undefined,
     items: packingItems.map((item) => ({
       name: item.id,
       quantity: config.quantities[item.id] ?? 0,
@@ -160,9 +179,9 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
     ) : null;
   const productCriteria: BackpackSearchCriteria = {
     capacityRangeLiters: estimate.suggestedCapacityRangeLiters,
-    backpackType: backpackCategories[config.backpackType],
-    laptopRequired: config.hasLaptop,
-    laptopInches: config.hasLaptop ? laptopInches[config.laptopSize] : undefined,
+    backpackType: trekking ? "hiking" : backpackCategories[config.backpackType],
+    laptopRequired: !trekking && config.hasLaptop,
+    laptopInches: !trekking && config.hasLaptop ? laptopInches[config.laptopSize] : undefined,
     dimensionsCm: config.searchType === "trip" && selectedRule && (selectedRule.maxHeightCm || selectedRule.maxWidthCm || selectedRule.maxDepthCm)
       ? { height: selectedRule.maxHeightCm ?? undefined, width: selectedRule.maxWidthCm ?? undefined, depth: selectedRule.maxDepthCm ?? undefined }
       : undefined,
@@ -170,13 +189,16 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
   const assumptions = [
     t.assumptionItemVolume,
     config.searchType === "everyday" ? t.assumptionEverydayBuffer : t.assumptionTripBuffer,
+    ...(trekking ? [t.assumptionTrekking] : []),
     t.assumptionCapacity,
   ];
   const stepNames: string[] = config.searchType === "everyday"
     ? ["purpose", "packing", "preferences", "result"]
-    : ["purpose", "trip", "airline", "packing", "preferences", "result"];
+    : trekking
+      ? ["purpose", "trek", "packing", "preferences", "result"]
+      : ["purpose", "trip", "airline", "packing", "preferences", "result"];
   const currentStep = stepNames[step] ?? "purpose";
-  const stepTitles = config.searchType === "everyday" ? t.stepsEveryday : t.stepsTrip;
+  const stepTitles = config.searchType === "everyday" ? t.stepsEveryday : trekking ? t.stepsTrekking : t.stepsTrip;
 
   /** Moves between steps and reports the funnel (configurator_step, configurator_complete). */
   function goTo(next: number) {
@@ -188,7 +210,9 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
       track("configurator_complete", {
         planner: "backpack",
         mode: config.searchType,
-        trip_days: config.searchType === "trip" ? config.tripDays : undefined,
+        trip_days: config.searchType === "trip" || (trekking && config.trekType !== "day-hike") ? config.tripDays : undefined,
+        trek_type: trekking ? config.trekType : undefined,
+        season: trekking ? config.trekSeason : undefined,
         airline: config.airlineId === "none" ? "none" : config.airlineId,
         baggage_type: config.airlineId === "none" ? undefined : config.baggageType,
         liters_min: estimate.suggestedCapacityRangeLiters.min,
@@ -209,13 +233,18 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
     setConfig((current) => ({ ...current, ...patch }));
   }
 
-  function selectPurpose(searchType: "trip" | "everyday") {
+  function selectPurpose(searchType: "trip" | "everyday" | "trekking") {
     if (config.searchType === null) track("configurator_start", { planner: "backpack", mode: searchType });
+    if (searchType === "trekking") {
+      setConfig((current) => (current.searchType === "trekking" ? current : { ...current, ...trekkingDefaults(current.tripDays, current.trekType, current.trekSeason) }));
+      return;
+    }
     setConfig((current) => ({
       ...current,
       searchType,
       airlineId: searchType === "everyday" ? "none" : current.airlineId,
-      quantities: current.packingCustomized
+      packingCustomized: current.packingCustomized && current.searchType !== "trekking",
+      quantities: current.packingCustomized && current.searchType !== "trekking"
         ? current.quantities
         : searchType === "everyday"
           ? suggestedEverydayPacking()
@@ -228,8 +257,22 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
     setConfig((current) => ({
       ...current,
       tripDays: days,
-      quantities: current.packingCustomized ? current.quantities : suggestedPacking(days, current.tripType),
+      quantities: current.packingCustomized
+        ? current.quantities
+        : current.searchType === "trekking"
+          ? suggestedTrekking(days, current.trekType, current.trekSeason)
+          : suggestedPacking(days, current.tripType),
     }));
+  }
+
+  function updateTrek(patch: { trekType?: TrekType; trekSeason?: TrekSeason }) {
+    if (patch.trekType && patch.trekType !== config.trekType) track("trek_type_select", { planner: "backpack", trek_type: patch.trekType });
+    setConfig((current) => {
+      const next = { ...current, ...patch };
+      // Overnight treks need at least two days.
+      if (next.trekType !== "day-hike" && next.tripDays < 2) next.tripDays = 3;
+      return { ...next, quantities: current.packingCustomized ? current.quantities : suggestedTrekking(next.tripDays, next.trekType, next.trekSeason) };
+    });
   }
 
   function updateTripType(index: number) {
@@ -255,7 +298,9 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
       packingCustomized: false,
       quantities: current.searchType === "everyday"
         ? suggestedEverydayPacking()
-        : suggestedPacking(current.tripDays, current.tripType),
+        : current.searchType === "trekking"
+          ? suggestedTrekking(current.tripDays, current.trekType, current.trekSeason)
+          : suggestedPacking(current.tripDays, current.tripType),
     }));
   }
 
@@ -288,9 +333,10 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
         <section className="config-panel" aria-live="polite">
           {currentStep === "purpose" && <div className="step-content">
             <p className="step-kicker">01 / {stepTitles[0]}</p><h2>{t.purposeTitle}</h2><p className="step-help">{t.purposeHelp}</p>
-            <div className="purpose-grid">
+            <div className="purpose-grid purpose-grid-3">
               <button type="button" className={`purpose-choice ${config.searchType === "trip" ? "is-selected" : ""}`} aria-pressed={config.searchType === "trip"} onClick={() => selectPurpose("trip")}><span className="purpose-number">01</span><strong>{t.travelPurpose}</strong><span>{t.travelPurposeHelp}</span><span className="radio-dot" /></button>
               <button type="button" className={`purpose-choice ${config.searchType === "everyday" ? "is-selected" : ""}`} aria-pressed={config.searchType === "everyday"} onClick={() => selectPurpose("everyday")}><span className="purpose-number">02</span><strong>{t.everydayPurpose}</strong><span>{t.everydayPurposeHelp}</span><span className="radio-dot" /></button>
+              <button type="button" className={`purpose-choice purpose-trekking ${trekking ? "is-selected" : ""}`} aria-pressed={trekking} onClick={() => selectPurpose("trekking")}><span className="purpose-number">03</span><strong><Mountain size={20} />{t.trekkingPurpose}</strong><span>{t.trekkingPurposeHelp}</span><span className="radio-dot" /></button>
             </div>
             <Link className="secondary-planner-link" href={`/${locale}/luggage-configurator`}>{locale === "it" ? "Viaggi con trolley o valigia? Prova il configuratore valigie" : "Travelling with a trolley or suitcase? Try the luggage planner"}<ArrowRight size={14} /></Link>
           </div>}
@@ -319,10 +365,27 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
             {config.airlineId !== "none" && <div className="field-block"><label className="field-label" htmlFor="baggage-type">{t.baggageType}</label><select id="baggage-type" value={config.baggageType} onChange={(event) => update({ baggageType: event.target.value })}>{baggageCategories.map((category) => <option key={category.id} value={category.id}>{category.label[locale]}</option>)}</select></div>}
           </div>}
 
+          {currentStep === "trek" && <div className="step-content">
+            <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><h2>{t.trekTitle}</h2><p className="step-help">{t.trekHelp}</p>
+            <div className="option-list trek-options">{trekTypes.map((type) => <button type="button" key={type} className={`option-row ${config.trekType === type ? "is-selected" : ""}`} onClick={() => updateTrek({ trekType: type })}><span className="radio-dot" /><span><strong>{t.trekTypes[type][0]}</strong><small>{t.trekTypes[type][1]}</small></span></button>)}</div>
+            {config.trekType !== "day-hike" && <>
+              <h3 className="sub-question">{t.trekDays}</h3>
+              <div className="duration-options">{[
+                { range: [2, 3], label: locale === "it" ? "2–3 giorni" : "2–3 days" },
+                { range: [4, 5], label: locale === "it" ? "4–5 giorni" : "4–5 days" },
+                { range: [6, 8], label: locale === "it" ? "6–8 giorni" : "6–8 days" },
+                { range: [9, 30], label: locale === "it" ? "Oltre 8 giorni" : "More than 8 days" },
+              ].map(({ range, label }) => <button key={label} className={`choice-tile ${config.tripDays >= range[0] && config.tripDays <= range[1] ? "is-selected" : ""}`} onClick={() => updateDuration(range[0] === 2 ? 3 : range[0])} type="button">{label}</button>)}</div>
+              <label className="field-label" htmlFor="trek-days">{t.exactDays}</label><div className="number-field"><input id="trek-days" type="number" min="2" max="60" value={config.tripDays} onChange={(event) => updateDuration(Math.max(2, Math.min(60, Number(event.target.value) || 2)))} /><span>{t.days}</span></div>
+            </>}
+            <h3 className="sub-question">{t.trekSeason}</h3>
+            <div className="segmented-options">{trekSeasons.map((season) => <button key={season} type="button" className={config.trekSeason === season ? "is-selected" : ""} onClick={() => updateTrek({ trekSeason: season })}>{t.trekSeasons[season]}</button>)}</div>
+          </div>}
+
           {currentStep === "packing" && <div className="step-content">
-            <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><div className="step-title-row"><div><h2>{t.packingTitle}</h2><p className="step-help">{config.searchType === "everyday" ? t.everydayPackingHelp : t.packingHelp}</p></div><button className="text-button" onClick={resetPacking} type="button"><RotateCcw size={14} />{t.reset}</button></div>
+            <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><div className="step-title-row"><div><h2>{t.packingTitle}</h2><p className="step-help">{config.searchType === "everyday" ? t.everydayPackingHelp : trekking ? t.trekkingPackingHelp : t.packingHelp}</p></div><button className="text-button" onClick={resetPacking} type="button"><RotateCcw size={14} />{t.reset}</button></div>
             {volumeAlert()}
-            {Object.entries(packingCategories).map(([category, labels]) => <div className="packing-group" key={category}><h3>{labels[locale]}</h3><div className="packing-list">{packingItems.filter((item) => item.category === category).map((item) => <div className={`packing-item ${(config.quantities[item.id] ?? 0) > 0 ? "has-items" : ""}`} key={item.id}><span className="packing-icon-wrap"><PackingIcon id={item.id} size={44} className="packing-icon" /></span><div className="packing-item-info"><span className="packing-item-name">{item.label[locale]}</span><span className="item-volume">~{item.volumeLiters} L / {locale === "it" ? "pezzo" : "item"}</span></div><div className="quantity-control"><button type="button" aria-label={`${locale === "it" ? "Rimuovi" : "Remove"} ${item.label[locale]}`} onClick={() => changeQuantity(item.id, -1)} disabled={(config.quantities[item.id] ?? 0) <= 0}>−</button><output key={config.quantities[item.id] ?? 0} className="quantity-pop" aria-label={`${item.label[locale]} quantity`}>{config.quantities[item.id] ?? 0}</output><button type="button" aria-label={`${locale === "it" ? "Aggiungi" : "Add"} ${item.label[locale]}`} onClick={(event) => { changeQuantity(item.id, 1); flyIntoBag(event.currentTarget.closest(".packing-item")?.querySelector(".packing-icon")); }}>+</button></div></div>)}</div></div>)}
+            {Object.entries(trekking ? trekkingCategories : packingCategories).map(([category, labels]) => <div className="packing-group" key={category}><h3>{labels[locale]}</h3><div className="packing-list">{packingItems.filter((item) => item.category === category).map((item) => <div className={`packing-item ${(config.quantities[item.id] ?? 0) > 0 ? "has-items" : ""}`} key={item.id}><span className="packing-icon-wrap"><PackingIcon id={item.id} size={44} className="packing-icon" /></span><div className="packing-item-info"><span className="packing-item-name">{item.label[locale]}</span><span className="item-volume">~{item.volumeLiters} L / {locale === "it" ? "pezzo" : "item"}</span></div><div className="quantity-control"><button type="button" aria-label={`${locale === "it" ? "Rimuovi" : "Remove"} ${item.label[locale]}`} onClick={() => changeQuantity(item.id, -1)} disabled={(config.quantities[item.id] ?? 0) <= 0}>−</button><output key={config.quantities[item.id] ?? 0} className="quantity-pop" aria-label={`${item.label[locale]} quantity`}>{config.quantities[item.id] ?? 0}</output><button type="button" aria-label={`${locale === "it" ? "Aggiungi" : "Add"} ${item.label[locale]}`} onClick={(event) => { changeQuantity(item.id, 1); flyIntoBag(event.currentTarget.closest(".packing-item")?.querySelector(".packing-icon")); }}>+</button></div></div>)}</div></div>)}
             <div className="packing-total"><span>{t.estimatedPacked}</span><strong>{packedVolume.toFixed(1)} L</strong></div>
             {/* Mobile: the sidebar is far below the list, so a small bag floats in view to catch the items. */}
             <div className="floating-bag"><PackingBackpack liters={packedVolume} size={72} status={volumeState} />{volumeState && volumeState !== "ok" && <span className={`floating-bag-flag is-${volumeState}`}>!</span>}</div>
@@ -330,36 +393,37 @@ export function Configurator({ locale, messages }: { locale: Locale; messages: M
 
           {currentStep === "preferences" && <div className="step-content">
             <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><h2>{t.preferencesTitle}</h2>
-            <label className="field-label" htmlFor="backpack-type">{t.backpackType}</label><select id="backpack-type" value={config.backpackType} onChange={(event) => update({ backpackType: Number(event.target.value) })}>{t.backpackTypes.map((type, index) => <option key={type} value={index}>{type}</option>)}</select>
+            {!trekking && <><label className="field-label" htmlFor="backpack-type">{t.backpackType}</label><select id="backpack-type" value={config.backpackType} onChange={(event) => update({ backpackType: Number(event.target.value) })}>{t.backpackTypes.map((type, index) => <option key={type} value={index}>{type}</option>)}</select></>}
             <h3 className="sub-question">{t.packingStyle}</h3><div className="style-options">{t.packingStyles.map((style, index) => <button key={style} className={`style-choice ${config.packingStyle === index ? "is-selected" : ""}`} type="button" onClick={() => update({ packingStyle: index })}><span className="style-marker">0{index + 1}</span><span>{style}</span><span className="radio-dot" /></button>)}</div>
-            <h3 className="sub-question">{t.laptop}</h3><div className="segmented-options"><button type="button" className={config.hasLaptop ? "is-selected" : ""} onClick={() => update({ hasLaptop: true, quantities: { ...config.quantities, laptop: Math.max(1, config.quantities.laptop ?? 0) }, packingCustomized: true })}>{t.yes}</button><button type="button" className={!config.hasLaptop ? "is-selected" : ""} onClick={() => update({ hasLaptop: false, quantities: { ...config.quantities, laptop: 0 }, packingCustomized: true })}>{t.no}</button></div>
-            {config.hasLaptop && <div className="field-block"><label className="field-label" htmlFor="laptop-size">{locale === "it" ? "Dimensione dello schermo" : "Laptop screen size"}</label><select id="laptop-size" value={config.laptopSize} onChange={(event) => update({ laptopSize: Number(event.target.value) })}>{t.laptopSizes.map((size, index) => <option key={size} value={index}>{size}</option>)}</select><p className="field-hint">{locale === "it" ? "La diagonale non garantisce la compatibilità: controlla le misure effettive del laptop." : "Screen diagonal alone doesn't guarantee fit. Check your laptop's actual dimensions."}</p></div>}
+            {trekking ? <div className="result-note"><Mountain size={17} /><p>{t.trekkingNote}</p></div> : <><h3 className="sub-question">{t.laptop}</h3><div className="segmented-options"><button type="button" className={config.hasLaptop ? "is-selected" : ""} onClick={() => update({ hasLaptop: true, quantities: { ...config.quantities, laptop: Math.max(1, config.quantities.laptop ?? 0) }, packingCustomized: true })}>{t.yes}</button><button type="button" className={!config.hasLaptop ? "is-selected" : ""} onClick={() => update({ hasLaptop: false, quantities: { ...config.quantities, laptop: 0 }, packingCustomized: true })}>{t.no}</button></div>
+            {config.hasLaptop && <div className="field-block"><label className="field-label" htmlFor="laptop-size">{locale === "it" ? "Dimensione dello schermo" : "Laptop screen size"}</label><select id="laptop-size" value={config.laptopSize} onChange={(event) => update({ laptopSize: Number(event.target.value) })}>{t.laptopSizes.map((size, index) => <option key={size} value={index}>{size}</option>)}</select><p className="field-hint">{locale === "it" ? "La diagonale non garantisce la compatibilità: controlla le misure effettive del laptop." : "Screen diagonal alone doesn't guarantee fit. Check your laptop's actual dimensions."}</p></div>}</>}
           </div>}
 
           {currentStep === "result" && <div className="step-content result-step">
-            <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><div className="result-hero"><div className="result-bag-visual"><PackingBackpack liters={packedVolume} size={170} status={volumeState} /></div><div className="result-capacity"><p className="eyebrow">{config.searchType === "everyday" ? t.everydayResultTitle : t.resultTitle}</p><h2>{estimate.suggestedCapacityRangeLiters.min}<span>–</span>{estimate.suggestedCapacityRangeLiters.max}<small> L</small></h2><p>{config.searchType === "everyday" ? t.everydayResultLead : t.resultLead}</p><div className="capacity-meter"><span style={{ width: `${Math.min(100, Math.max(14, (packedVolume / estimate.suggestedCapacityRangeLiters.max) * 100))}%` }} /></div><div className="meter-labels"><span>{t.packingVolume}</span><strong>{packedVolume.toFixed(1)} L</strong></div></div></div>
+            <p className="step-kicker">0{step + 1} / {stepTitles[step]}</p><div className="result-hero"><div className="result-bag-visual"><PackingBackpack liters={packedVolume} size={170} status={volumeState} /></div><div className="result-capacity"><p className="eyebrow">{config.searchType === "everyday" ? t.everydayResultTitle : trekking ? t.trekkingResultTitle : t.resultTitle}</p><h2>{estimate.suggestedCapacityRangeLiters.min}<span>–</span>{estimate.suggestedCapacityRangeLiters.max}<small> L</small></h2><p>{config.searchType === "everyday" ? t.everydayResultLead : trekking ? t.trekkingResultLead : t.resultLead}</p><div className="capacity-meter"><span style={{ width: `${Math.min(100, Math.max(14, (packedVolume / estimate.suggestedCapacityRangeLiters.max) * 100))}%` }} /></div><div className="meter-labels"><span>{t.packingVolume}</span><strong>{packedVolume.toFixed(1)} L</strong></div></div></div>
             {volumeAlert()}
             <div className="result-note"><ShieldCheck size={17} /><p>{t.capacityNote}</p></div>
+            {trekking && <div className="result-note"><Mountain size={17} /><p>{t.trekkingNote}</p></div>}
             <ProductMatches locale={locale} criteria={productCriteria} />
-            <div className="summary-block"><h3>{config.searchType === "everyday" ? t.everydaySummary : t.summary}</h3><div className="summary-grid"><div><span>{config.searchType === "everyday" ? t.use : t.trip}</span><strong>{config.searchType === "everyday" ? t.everydayUse : `${config.tripDays} ${t.days}`}</strong></div>{config.searchType === "trip" && <><div><span>{t.airline}</span><strong>{selectedAirline?.name ?? t.noAirline}</strong></div><div><span>{t.allowance}</span><strong>{selectedAirline ? baggageCategories.find((category) => category.id === config.baggageType)?.label[locale] : "—"}</strong></div></>}<div><span>{t.margin}</span><strong>{Math.round(estimate.capacityMargin * 100)}%</strong></div></div></div>
+            <div className="summary-block"><h3>{config.searchType === "everyday" ? t.everydaySummary : trekking ? t.trekkingSummary : t.summary}</h3><div className="summary-grid">{trekking ? <><div><span>{t.trekType}</span><strong>{t.trekTypes[config.trekType][0]}</strong></div>{config.trekType !== "day-hike" && <div><span>{t.trip}</span><strong>{config.tripDays} {t.days}</strong></div>}<div><span>{t.season}</span><strong>{t.trekSeasons[config.trekSeason]}</strong></div></> : <div><span>{config.searchType === "everyday" ? t.use : t.trip}</span><strong>{config.searchType === "everyday" ? t.everydayUse : `${config.tripDays} ${t.days}`}</strong></div>}{config.searchType === "trip" && <><div><span>{t.airline}</span><strong>{selectedAirline?.name ?? t.noAirline}</strong></div><div><span>{t.allowance}</span><strong>{selectedAirline ? baggageCategories.find((category) => category.id === config.baggageType)?.label[locale] : "—"}</strong></div></>}<div><span>{t.margin}</span><strong>{Math.round(estimate.capacityMargin * 100)}%</strong></div></div></div>
             {config.searchType === "trip" && selectedAirline && <><div className="rule-panel"><div className="rule-panel-heading"><span className="rule-icon"><ShieldCheck size={17} /></span><div><h3>{t.ruleTitle}</h3><span className="status-pill"><span />{selectedRule?.status === "verified" ? (locale === "it" ? "Regola verificata" : "Verified rule") : t.unverified}</span></div></div>{selectedRule?.status === "verified" ? <>
               <div className="rule-limits">{selectedRule.maxHeightCm && selectedRule.maxWidthCm && selectedRule.maxDepthCm ? <span>{selectedRule.maxHeightCm} × {selectedRule.maxWidthCm} × {selectedRule.maxDepthCm} cm</span> : null}{selectedRule.maxWeightKg ? <span>{selectedRule.maxWeightKg} kg</span> : null}<span>{selectedRule.fareName[locale]}</span></div>
               <p>{selectedRule.conditions[locale]} {locale === "it" ? "Inserisci le misure esterne del tuo zaino qui sotto per controllare se rientra." : "Enter your backpack's external size below to check whether it fits."}</p>
             </> : <p>{t.unverifiedText}</p>}<a className="official-link" href={selectedRule?.sourceUrl ?? selectedAirline.website} target="_blank" rel="noreferrer">{locale === "it" ? `Visita il sito ufficiale di ${selectedAirline.name}` : `Visit ${selectedAirline.name}'s official site`}<ArrowRight size={14} /></a></div>
             <div className="dimensions-block"><h3>{t.dimensionTitle}</h3><p className="step-help">{t.dimensionHelp}</p><div className="dimension-fields">{(["height", "width", "depth", "weight"] as const).map((key) => <label key={key}><span>{t[key]}</span><input type="number" min="0" step="0.1" inputMode="decimal" value={config.dimensions[key]} onChange={(event) => update({ dimensions: { ...config.dimensions, [key]: event.target.value } })} /></label>)}</div><p className={`fit-status is-${compatibility.status}`}><span className="status-dot" />{compatibility.status === "cannot-verify" ? t.unverified : compatibility.status === "compatible" ? (locale === "it" ? "Compatibile" : "Compatible") : (locale === "it" ? "Non compatibile" : "Not compatible")}</p></div></>}
             {config.searchType === "everyday" && <div className="result-note"><Check size={17} /><p>{t.noAirlineCheck}</p></div>}
-            <details className="assumptions-details"><summary>{t.assumptions}<span>+</span></summary><ul>{assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul><p>{t.margin}: {Math.round(estimate.capacityMargin * 100)}% · {t.preferenceSummary}: {t.backpackTypes[config.backpackType]}</p></details>
+            <details className="assumptions-details"><summary>{t.assumptions}<span>+</span></summary><ul>{assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul><p>{t.margin}: {Math.round(estimate.capacityMargin * 100)}% · {t.preferenceSummary}: {trekking ? t.backpackTypes[3] : t.backpackTypes[config.backpackType]}</p></details>
             <div className="result-actions"><button className="button button-outline" type="button" onClick={() => goTo(stepNames.indexOf("packing"))}><ArrowLeft size={15} />{t.editPacking}</button>{config.searchType === "trip" && <button className="button button-outline" type="button" onClick={() => goTo(stepNames.indexOf("airline"))}>{t.changeAirline}</button>}<button className="button button-dark" type="button" onClick={copyShareLink}><Copy size={15} />{copied ? t.copied : t.copy}</button></div>
           </div>}
 
           <div className="config-nav">{step > 0 && currentStep !== "result" ? <button className="button button-outline" type="button" onClick={() => goTo(step - 1)}><ArrowLeft size={16} />{t.back}</button> : currentStep === "result" ? <button className="button button-outline" type="button" onClick={restart}><RotateCcw size={15} />{t.restart}</button> : <span />}{currentStep !== "result" && <button className="button button-dark" type="button" disabled={currentStep === "purpose" && config.searchType === null} onClick={() => goTo(Math.min(step + 1, stepNames.length - 1))}>{currentStep === "preferences" ? t.calculate : t.next}<ArrowRight size={16} /></button>}</div>
         </section>
-        <aside className="config-aside" aria-label={config.searchType === "everyday" ? t.everydaySummary : config.searchType === "trip" ? t.summary : t.purposeTitle}>
-          <div className="aside-top"><span className="aside-label">{config.searchType === "everyday" ? t.everydaySummary : config.searchType === "trip" ? t.summary : t.purposeTitle}</span><span className="aside-dot" /></div>
+        <aside className="config-aside" aria-label={config.searchType === "everyday" ? t.everydaySummary : config.searchType === "trip" ? t.summary : trekking ? t.trekkingSummary : t.purposeTitle}>
+          <div className="aside-top"><span className="aside-label">{config.searchType === "everyday" ? t.everydaySummary : config.searchType === "trip" ? t.summary : trekking ? t.trekkingSummary : t.purposeTitle}</span><span className="aside-dot" /></div>
           <div className="aside-bag"><PackingBackpack liters={packedVolume} size={190} status={volumeState} /></div>
           {volumeAlert(true)}
           <div className="aside-capacity"><span>{locale === "it" ? "Capienza utile consigliata" : "Suggested usable capacity"}</span><strong>{config.searchType ? estimate.suggestedCapacityRangeLiters.min : "—"}<small>{config.searchType ? `–${estimate.suggestedCapacityRangeLiters.max} L` : ""}</small></strong></div>
-          {config.searchType && <><div className="aside-stat"><span>{config.searchType === "everyday" ? t.use : t.trip}</span><strong>{config.searchType === "everyday" ? t.everydayUse : `${config.tripDays} ${t.days}`}</strong></div>{config.searchType === "trip" && <div className="aside-stat"><span>{t.airline}</span><strong>{selectedAirline?.name ?? (locale === "it" ? "Nessuna" : "None selected")}</strong></div>}<div className="aside-stat"><span>{t.estimatedPacked}</span><strong>{packedVolume.toFixed(1)} L</strong></div></>}
+          {config.searchType && <><div className="aside-stat"><span>{config.searchType === "everyday" ? t.use : trekking ? t.trekType : t.trip}</span><strong>{config.searchType === "everyday" ? t.everydayUse : trekking ? `${t.trekTypes[config.trekType][0]}${config.trekType === "day-hike" ? "" : ` · ${config.tripDays} ${t.days}`}` : `${config.tripDays} ${t.days}`}</strong></div>{config.searchType === "trip" && <div className="aside-stat"><span>{t.airline}</span><strong>{selectedAirline?.name ?? (locale === "it" ? "Nessuna" : "None selected")}</strong></div>}<div className="aside-stat"><span>{t.estimatedPacked}</span><strong>{packedVolume.toFixed(1)} L</strong></div></>}
           <div className="aside-foot"><span className="aside-foot-icon"><Check size={14} /></span><span>{config.searchType ? (locale === "it" ? "La stima si aggiorna mentre modifichi i dettagli." : "Your estimate updates as you make changes.") : t.purposePending}</span></div>
         </aside>
       </div>

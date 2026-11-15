@@ -1,5 +1,5 @@
 export type Locale = "en" | "it";
-export type PackingCategory = "clothing" | "footwear" | "electronics" | "accessories";
+export type PackingCategory = "clothing" | "footwear" | "electronics" | "accessories" | "outdoor";
 
 export interface PackingItemDefinition {
   id: string;
@@ -12,7 +12,7 @@ export interface PackingItemDefinition {
   label: Record<Locale, string>;
 }
 
-export const packingCategories: Record<PackingCategory, Record<Locale, string>> = {
+export const packingCategories: Record<Exclude<PackingCategory, "outdoor">, Record<Locale, string>> = {
   clothing: { en: "Clothing", it: "Abbigliamento" },
   footwear: { en: "Footwear", it: "Calzature" },
   electronics: { en: "Electronics", it: "Elettronica" },
@@ -48,6 +48,83 @@ export const packingItems: PackingItemDefinition[] = [
 
 /** Items offered in the backpack questionnaire. */
 export const backpackItems = packingItems.filter((item) => !item.suitcaseOnly);
+
+/* ------------------------------------------------------------------ trekking & mountain */
+
+export type TrekType = "day-hike" | "hut-to-hut" | "camping";
+export type TrekSeason = "summer" | "shoulder" | "winter";
+export const trekTypes: TrekType[] = ["day-hike", "hut-to-hut", "camping"];
+export const trekSeasons: TrekSeason[] = ["summer", "shoulder", "winter"];
+
+/** Outdoor gear, offered only in the trekking questionnaire. Volumes are packed/compressed sizes. */
+export const trekkingGear: PackingItemDefinition[] = [
+  { id: "rain-shell", category: "outdoor", volumeLiters: 2, weightKg: 0.35, label: { en: "Waterproof jacket", it: "Giacca impermeabile" } },
+  { id: "fleece", category: "outdoor", volumeLiters: 2.2, weightKg: 0.4, label: { en: "Fleece / mid layer", it: "Pile / strato intermedio" } },
+  { id: "base-layer", category: "outdoor", volumeLiters: 0.6, weightKg: 0.18, label: { en: "Thermal base layer", it: "Maglia termica" } },
+  { id: "hat-gloves", category: "outdoor", volumeLiters: 0.6, weightKg: 0.15, label: { en: "Beanie and gloves", it: "Berretto e guanti" } },
+  { id: "sun-kit", category: "outdoor", volumeLiters: 0.6, weightKg: 0.2, label: { en: "Sun hat and sunscreen", it: "Cappello e crema solare" } },
+  { id: "headlamp", category: "outdoor", volumeLiters: 0.2, weightKg: 0.1, label: { en: "Headlamp", it: "Lampada frontale" } },
+  { id: "first-aid", category: "outdoor", volumeLiters: 0.7, weightKg: 0.3, label: { en: "First-aid kit", it: "Kit di primo soccorso" } },
+  { id: "food", category: "outdoor", volumeLiters: 1.2, weightKg: 0.6, label: { en: "Food and snacks (per day)", it: "Cibo e snack (per giorno)" } },
+  { id: "water", category: "outdoor", volumeLiters: 1.1, weightKg: 1.05, label: { en: "Water (1 liter)", it: "Acqua (1 litro)" } },
+  { id: "hut-liner", category: "outdoor", volumeLiters: 0.8, weightKg: 0.2, label: { en: "Sleeping-bag liner (huts)", it: "Sacco lenzuolo (rifugio)" } },
+  { id: "sleeping-bag", category: "outdoor", volumeLiters: 7, weightKg: 1, label: { en: "Sleeping bag", it: "Sacco a pelo" } },
+  { id: "sleeping-mat", category: "outdoor", volumeLiters: 4, weightKg: 0.5, label: { en: "Sleeping mat", it: "Materassino" } },
+  { id: "tent", category: "outdoor", volumeLiters: 5, weightKg: 1.5, label: { en: "Tent", it: "Tenda" } },
+  { id: "stove", category: "outdoor", volumeLiters: 2, weightKg: 0.5, label: { en: "Stove and pot", it: "Fornello e pentolino" } },
+];
+
+/** Categories shown in the trekking list, gear first. */
+export const trekkingCategories: Record<"outdoor" | "clothing" | "footwear" | "electronics" | "accessories", Record<Locale, string>> = {
+  outdoor: { en: "Outdoor gear", it: "Attrezzatura outdoor" },
+  clothing: { en: "Clothing", it: "Abbigliamento" },
+  footwear: { en: "Footwear", it: "Calzature" },
+  electronics: { en: "Electronics", it: "Elettronica" },
+  accessories: { en: "Accessories", it: "Accessori" },
+};
+
+const trekkingBaseIds = ["t-shirt", "trousers", "shorts", "underwear", "socks", "sandals", "camera", "chargers", "power-bank", "toiletries", "documents", "accessories"];
+
+/** Items offered in the trekking questionnaire: everyday basics that make sense on a trail, plus the gear. */
+export const trekkingItems: PackingItemDefinition[] = [...packingItems.filter((item) => trekkingBaseIds.includes(item.id)), ...trekkingGear];
+
+/**
+ * A starting packing list for a trek. Day hikes carry layers, water and food; hut-to-hut adds a change
+ * of clothes and a liner (meals are in the hut); camping adds shelter, sleep system, stove and meals.
+ */
+export function suggestedTrekking(days: number, type: TrekType, season: TrekSeason): Record<string, number> {
+  const trekDays = type === "day-hike" ? 1 : Math.max(2, days);
+  const overnight = type !== "day-hike";
+  const cold = season !== "summer";
+  const quantities: Record<string, number> = Object.fromEntries(trekkingItems.map((item) => [item.id, 0]));
+  Object.assign(quantities, {
+    "t-shirt": overnight ? Math.min(4, Math.ceil(trekDays / 2) + 1) : 1,
+    trousers: overnight ? 1 : 0,
+    shorts: overnight && season === "summer" ? 1 : 0,
+    underwear: overnight ? Math.min(trekDays, 5) : 0,
+    socks: overnight ? Math.min(trekDays, 4) : 1,
+    "rain-shell": 1,
+    fleece: 1,
+    "base-layer": (overnight || cold ? 1 : 0) + (season === "winter" ? 1 : 0),
+    "hat-gloves": cold || overnight ? 1 : 0,
+    "sun-kit": season === "winter" ? 0 : 1,
+    headlamp: 1,
+    "first-aid": 1,
+    food: type === "camping" ? Math.ceil(trekDays * 1.5) : trekDays,
+    water: 2,
+    "hut-liner": type === "hut-to-hut" ? 1 : 0,
+    "sleeping-bag": type === "camping" ? 1 : 0,
+    "sleeping-mat": type === "camping" ? 1 : 0,
+    tent: type === "camping" ? 1 : 0,
+    stove: type === "camping" ? 1 : 0,
+    toiletries: overnight ? 1 : 0,
+    chargers: overnight ? 1 : 0,
+    "power-bank": 1,
+    documents: 1,
+    accessories: 1,
+  });
+  return quantities;
+}
 
 export function suggestedQuantity(itemId: string, days: number): number {
   const daysOfClothing = Math.min(days, 8);

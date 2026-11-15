@@ -85,7 +85,7 @@ export interface TravelGuide {
   /** Live products from the Shopify catalog matching these criteria. */
   products?: { heading: Record<Lang, string>; intro: Record<Lang, string>; criteria: BackpackSearchCriteria };
   /** Call to action towards one of the planners. */
-  cta?: { label: Record<Lang, string>; text: Record<Lang, string>; href: "/backpack-configurator" | "/luggage-configurator" };
+  cta?: { label: Record<Lang, string>; text: Record<Lang, string>; href: "/backpack-configurator" | "/backpack-configurator?mode=trekking" | "/luggage-configurator" };
 }
 
 export const guides: TravelGuide[] = [
@@ -686,4 +686,216 @@ export const guides: TravelGuide[] = [
       href: "/luggage-configurator",
     },
   },
+  {
+    slug: "trekking-backpack-guide",
+    published: "2026-11-16",
+    updated: "2026-11-16",
+    category: { en: "Trekking & outdoor", it: "Trekking e outdoor" },
+    title: {
+      en: "Trekking backpack: how to choose one for hiking and mountains",
+      it: "Zaino da trekking: come sceglierlo per escursioni e montagna",
+    },
+    description: {
+      en: "How many liters for a day hike, a hut-to-hut trek or a tent trip, how to find your back length, hip belt, back panel and how to pack it. With real models.",
+      it: "Quanti litri per un'escursione, un trekking in rifugio o in tenda, come trovare la taglia dello schienale, cintura, ventilazione e come caricarlo. Con modelli reali.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Prima di tutto: che uscita fai?",
+          paragraphs: [
+            "Lo zaino da trekking giusto dipende quasi solo da dove dormi. Una giornata in montagna, tre notti di rifugio in rifugio e un trekking con la tenda sulle spalle richiedono zaini completamente diversi, anche se il percorso è lo stesso.",
+            "Come punto di partenza, queste sono le capienze che servono di solito:",
+          ],
+          table: {
+            head: ["Tipo di uscita", "Capienza consigliata", "Cosa ci va"],
+            rows: [
+              ["Escursione in giornata", "20–30 L", "Giacca impermeabile, pile, acqua, pranzo, kit di primo soccorso"],
+              ["Trekking in rifugio (2–4 giorni)", "30–45 L", "Più un cambio, sacco lenzuolo, beauty essenziale"],
+              ["Trekking con tenda (2–4 giorni)", "50–65 L", "Più tenda, sacco a pelo, materassino, fornello e pasti"],
+              ["Più di 5 giorni in autonomia", "65 L e oltre", "Più cibo e ricambi per tutti i giorni"],
+            ],
+          },
+          tip: "In autunno e in inverno conta 5–10 litri in più: strati termici, guanti e un sacco a pelo più caldo occupano molto spazio.",
+        },
+        {
+          heading: "La taglia giusta è quella del tuo busto, non la tua altezza",
+          paragraphs: [
+            "Molti zaini da trekking esistono in più taglie (S, M, L) o hanno uno schienale regolabile. La misura che conta è la lunghezza del busto: dalla vertebra sporgente alla base del collo fino alla linea dei fianchi (il bordo superiore delle ossa del bacino).",
+            "Fatti aiutare a misurarla con un metro morbido e confrontala con la tabella taglie del produttore. Due persone alte uguali possono avere busti diversi di diversi centimetri.",
+          ],
+          tip: "Le versioni da donna hanno di solito busto più corto, spallacci sagomati e cintura più conica: non sono solo un cambio di colore.",
+        },
+        {
+          heading: "La cintura in vita porta il peso",
+          paragraphs: [
+            "Da circa 30 litri in su lo zaino deve avere una cintura imbottita: è lei che trasferisce gran parte del carico sui fianchi, lasciando le spalle libere. Una cintura sottile o assente va bene solo per zaini da giornata leggeri.",
+            "Quando lo provi, la cintura deve appoggiare sulle ossa del bacino, non sulla pancia. Poi stringi gli spallacci e infine i tiranti sopra le spalle (load lifters), che avvicinano il carico alla schiena.",
+          ],
+        },
+        {
+          heading: "Schienale: ventilato o a contatto?",
+          paragraphs: ["Ci sono due grandi famiglie, con vantaggi diversi:"],
+          table: {
+            head: ["Schienale", "Punti forti", "Attenzione a"],
+            rows: [
+              ["A rete tesa (ventilato)", "La schiena suda molto meno, ottimo d'estate", "Il carico sta più lontano dalla schiena: meno stabile con molto peso"],
+              ["A contatto (imbottito)", "Carico vicino alla schiena, più stabile su terreni difficili e con zaini pesanti", "Più caldo"],
+            ],
+          },
+        },
+        {
+          heading: "Le caratteristiche che fanno la differenza",
+          paragraphs: ["Oltre ai litri, questi dettagli rendono uno zaino comodo in cammino:"],
+          list: [
+            "Accesso frontale o dal basso: prendi la giacca senza svuotare tutto.",
+            "Coprizaino integrato: nella sua tasca sul fondo, pronto quando arriva il temporale.",
+            "Tasche sulla cintura: per telefono, snack e crema solare senza togliere lo zaino.",
+            "Compatibilità con sacca idrica: bevi spesso senza fermarti.",
+            "Portabastoncini e anelli porta piccozza: utili in montagna.",
+            "Cinghie di compressione: tengono il carico fermo quando lo zaino non è pieno.",
+            "Peso a vuoto: 1–1,5 kg è normale per un 40 litri; sotto 1 kg sei nel mondo ultralight, con tessuti più delicati.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "Come caricarlo bene",
+          paragraphs: [
+            "Il modo in cui lo riempi conta quanto lo zaino. La regola base: gli oggetti pesanti vicini alla schiena, all'altezza delle scapole.",
+          ],
+          list: [
+            "Sul fondo: sacco a pelo e cose che usi solo la sera.",
+            "Al centro, contro la schiena: acqua, cibo, fornello, le cose più pesanti.",
+            "In alto e nelle tasche: giacca impermeabile, pile, kit di primo soccorso, frontale.",
+            "Fuori dallo zaino il meno possibile: oggetti appesi dondolano e si impigliano.",
+          ],
+          tip: "Una regola pratica diffusa è non superare circa il 20% del tuo peso corporeo nello zaino carico: oltre, la fatica cresce molto in fretta.",
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Parti da dove dormi per scegliere i litri, poi scegli la taglia in base al busto, verifica la cintura in vita e provalo carico prima di comprarlo. Lo zaino giusto è quello che dopo sei ore di cammino ti dimentichi di avere sulle spalle.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "First: what kind of trip?",
+          paragraphs: [
+            "The right trekking backpack depends almost entirely on where you sleep. A day in the mountains, three nights hut to hut and a trek carrying your own tent need very different packs, even on the same trail.",
+            "As a starting point, these are the capacities you usually need:",
+          ],
+          table: {
+            head: ["Kind of trip", "Suggested capacity", "What goes in"],
+            rows: [
+              ["Day hike", "20–30 L", "Waterproof jacket, fleece, water, lunch, first-aid kit"],
+              ["Hut-to-hut trek (2–4 days)", "30–45 L", "Plus a change of clothes, a sleeping-bag liner, basic toiletries"],
+              ["Trek with a tent (2–4 days)", "50–65 L", "Plus tent, sleeping bag, mat, stove and meals"],
+              ["Over 5 days self-supported", "65 L and up", "Plus food and changes for every day"],
+            ],
+          },
+          tip: "In autumn and winter add 5–10 liters: thermal layers, gloves and a warmer sleeping bag take a lot of room.",
+        },
+        {
+          heading: "Size it to your back, not your height",
+          paragraphs: [
+            "Many trekking packs come in sizes (S, M, L) or have an adjustable back. What matters is your torso length: from the bony bump at the base of your neck down to your hip line (the top of your hip bones).",
+            "Have someone measure it with a soft tape and compare it with the maker's size chart. Two people of the same height can have torsos several centimeters apart.",
+          ],
+          tip: "Women's versions usually have a shorter torso, shaped straps and a more conical hip belt: they're not just a different color.",
+        },
+        {
+          heading: "The hip belt carries the load",
+          paragraphs: [
+            "From about 30 liters, a pack needs a padded hip belt: it moves most of the weight onto your hips and frees your shoulders. A thin belt, or none, is only fine for light day packs.",
+            "When you try it, the belt should sit on your hip bones, not your belly. Then tighten the shoulder straps and finally the load lifters above your shoulders, which pull the load towards your back.",
+          ],
+        },
+        {
+          heading: "Back panel: ventilated or contact?",
+          paragraphs: ["There are two big families, with different strengths:"],
+          table: {
+            head: ["Back panel", "Strengths", "Watch out for"],
+            rows: [
+              ["Suspended mesh (ventilated)", "Much less back sweat, great in summer", "The load sits further from your back: less stable when heavy"],
+              ["Contact (padded)", "Load close to your back, more stable on rough ground and with heavy packs", "Warmer"],
+            ],
+          },
+        },
+        {
+          heading: "Features that make a difference",
+          paragraphs: ["Beyond liters, these details make a pack comfortable on the trail:"],
+          list: [
+            "Front or bottom access: grab your jacket without unpacking everything.",
+            "Built-in rain cover: in its own pocket at the bottom, ready for the storm.",
+            "Hip-belt pockets: phone, snacks and sunscreen without taking the pack off.",
+            "Hydration-bladder compatible: drink often without stopping.",
+            "Pole and ice-axe loops: useful in the mountains.",
+            "Compression straps: keep the load steady when the pack isn't full.",
+            "Empty weight: 1–1.5 kg is normal for 40 liters; under 1 kg you're in ultralight territory, with more delicate fabrics.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "How to pack it",
+          paragraphs: ["How you fill it matters as much as the pack itself. The basic rule: heavy items close to your back, at shoulder-blade height."],
+          list: [
+            "At the bottom: sleeping bag and things you only use in the evening.",
+            "In the middle, against your back: water, food, stove, the heaviest items.",
+            "At the top and in pockets: waterproof jacket, fleece, first-aid kit, headlamp.",
+            "As little as possible outside: hanging items swing and snag.",
+          ],
+          tip: "A common rule of thumb is to keep the loaded pack under about 20% of your body weight: beyond that, fatigue grows fast.",
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "Start from where you sleep to choose the liters, then size it to your torso, check the hip belt and try it loaded before you buy. The right pack is the one you forget you're wearing after six hours on the trail.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Trekking backpacks for hut-to-hut treks", it: "Zaini da trekking per il rifugio" },
+      intro: {
+        en: "30–45 L trekking backpacks, the most versatile size, from the stores' Shopify catalogs. Use the brand filter to compare makers.",
+        it: "Zaini da trekking da 30–45 L, la misura più versatile, dai cataloghi Shopify dei negozi. Usa il filtro brand per confrontare le marche.",
+      },
+      criteria: { productKind: "backpack", backpackType: "hiking", capacityRangeLiters: { min: 30, max: 45 } },
+    },
+    faq: {
+      it: [
+        { question: "Quanti litri deve avere uno zaino da trekking?", answer: "Per un'escursione in giornata 20–30 L, per un trekking in rifugio di 2–4 giorni 30–45 L, con la tenda 50–65 L. In inverno aggiungi 5–10 litri per gli strati in più." },
+        { question: "Come si misura la lunghezza del busto?", answer: "Dalla vertebra sporgente alla base del collo fino alla linea dei fianchi, all'altezza del bordo superiore delle ossa del bacino. Confronta la misura con la tabella taglie del produttore." },
+        { question: "Uno zaino da 40 litri basta per un trekking in rifugio?", answer: "Di solito sì per 2–4 giorni: in rifugio trovi letto e pasti, quindi porti solo vestiti, sacco lenzuolo, acqua e snack. Con la tenda invece servono 50 litri o più." },
+        { question: "Meglio schienale ventilato o a contatto?", answer: "Ventilato se fai soprattutto escursioni estive con carichi leggeri. A contatto se porti molto peso o cammini su terreni difficili, dove serve stabilità." },
+        { question: "Quanto deve pesare lo zaino carico?", answer: "Una regola pratica diffusa è restare intorno al 20% del proprio peso corporeo. Per una persona di 70 kg significa circa 14 kg con acqua e cibo." },
+        { question: "Serve uno zaino da donna?", answer: "Non è obbligatorio, ma i modelli da donna hanno busto più corto e spallacci e cintura sagomati: per molte persone sono più comodi. Conta la vestibilità, non l'etichetta." },
+      ],
+      en: [
+        { question: "How many liters should a trekking backpack have?", answer: "20–30 L for a day hike, 30–45 L for a 2–4 day hut-to-hut trek, 50–65 L with a tent. In winter add 5–10 liters for extra layers." },
+        { question: "How do I measure my torso length?", answer: "From the bony bump at the base of your neck down to your hip line, level with the top of your hip bones. Compare it with the maker's size chart." },
+        { question: "Is a 40 liter pack enough for a hut-to-hut trek?", answer: "Usually yes for 2–4 days: huts provide beds and meals, so you carry only clothes, a liner, water and snacks. With a tent you'll need 50 liters or more." },
+        { question: "Ventilated or contact back panel?", answer: "Ventilated if you mostly hike in summer with light loads. Contact if you carry a lot of weight or walk rough terrain, where stability matters." },
+        { question: "How heavy should the loaded pack be?", answer: "A common rule of thumb is about 20% of your body weight. For a 70 kg person that's roughly 14 kg including water and food." },
+        { question: "Do I need a women's backpack?", answer: "It's not required, but women's models have a shorter torso and shaped straps and hip belt: many people find them more comfortable. Fit matters, not the label." },
+      ],
+    },
+    cta: {
+      label: { en: "Find your trekking pack", it: "Calcola il tuo zaino da trekking" },
+      text: { en: "Choose day hike, huts or tent, the days and the season: we'll work out the liters and show you real trekking packs.", it: "Scegli giornata, rifugio o tenda, i giorni e la stagione: calcoliamo i litri e ti mostriamo zaini da trekking veri." },
+      href: "/backpack-configurator?mode=trekking",
+    },
+  },
 ];
+
+/**
+ * Guides from the newest to the oldest (by publication date). Same date: the one added later to the
+ * list comes first. Guides without a date go last.
+ */
+export function guidesNewestFirst(): TravelGuide[] {
+  return guides
+    .map((guide, index) => ({ guide, index }))
+    .sort((a, b) => (b.guide.published ?? "").localeCompare(a.guide.published ?? "") || b.index - a.index)
+    .map(({ guide }) => guide);
+}

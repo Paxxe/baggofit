@@ -17,7 +17,10 @@ export interface CatalogOption {
 export interface CatalogBackpack {
   id: string;
   title: string;
+  /** Store (seller) name. */
   brand: string;
+  /** The product's real brand, when recognised (see brands.ts). */
+  maker?: string;
   url: string;
   imageUrl?: string;
   currency?: string;

@@ -3,7 +3,7 @@ import { ArrowRight, BadgeCheck, Plane } from "lucide-react";
 import type { Locale } from "@/lib/data/packing-items";
 import { packingItems } from "@/lib/data/packing-items";
 import { airlines, getAirlineRules, getVerifiedPolicy, type AirlineBaggageRule } from "@/lib/data/airlines";
-import { guides } from "@/lib/data/guides";
+import { guidesNewestFirst } from "@/lib/data/guides";
 import { PackingBackpack } from "@/components/packing-backpack";
 import { PackingSuitcase } from "@/components/packing-suitcase";
 
@@ -105,7 +105,7 @@ export function HomeAirlines({ locale }: { locale: Locale }) {
 
 export function HomeGuides({ locale }: { locale: Locale }) {
   const it = locale === "it";
-  const latest = [...guides].sort((a, b) => (b.published ?? "").localeCompare(a.published ?? "")).slice(0, 3);
+  const latest = guidesNewestFirst().slice(0, 3);
   return (
     <section className="home-guides">
       <div className="cartoon-section-heading">

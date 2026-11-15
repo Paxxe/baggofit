@@ -4,6 +4,7 @@ import { matchBackpacks } from "./match";
 import type { BackpackCategory, BackpackProduct, BackpackSearchCriteria, ProductKind, ProductRecommendationProvider } from "./provider";
 import { directStorefronts, type DirectStorefront } from "./storefronts";
 import { getCatalogToken, hasCatalogCredentials } from "./shopify-auth";
+import { detectBrand } from "./brands";
 
 /**
  * Shopify Global Catalog (UCP over MCP): official cross-merchant product search.
@@ -116,6 +117,7 @@ export function normalizeUcpProduct(product: UcpProduct, kind: ProductKind = "ba
     id: product.id,
     title: product.title.trim(),
     brand: store?.brand ?? (firstVariant.seller?.name?.trim() || "Shopify"),
+    maker: store?.brand ?? detectBrand(product.title, firstVariant.seller?.name),
     url: firstVariant.url ?? product.url ?? firstVariant.seller?.url ?? store?.url ?? "",
     imageUrl: image?.url,
     currency: firstVariant.price?.currency ?? product.price_range?.min.currency,
@@ -344,7 +346,8 @@ export function buildQueries(criteria: BackpackSearchCriteria) {
     const size = suitcaseSize(target);
     return [...new Set([`${size.en} checked suitcase${light}`, `${target}L suitcase spinner${light}`, `hard shell luggage ${size.en}`, `valigia ${size.it}`])];
   }
-  const kind = criteria.backpackType ? typeQuery[criteria.backpackType] : "backpack";
+  // Multi-day treks need a trekking pack, not a daypack.
+  const kind = criteria.backpackType === "hiking" && target > 30 ? "trekking backpack" : criteria.backpackType ? typeQuery[criteria.backpackType] : "backpack";
   const laptop = criteria.laptopRequired ? ` with laptop compartment${criteria.laptopInches ? ` ${criteria.laptopInches} inch` : ""}` : "";
   const italian = criteria.backpackType ? italianType[criteria.backpackType] : "zaino";
   return [...new Set([`${kind} ${target}L${laptop}`, `${target} liter backpack`, `${target}L rucksack${criteria.laptopRequired ? " laptop" : ""}`, `${italian} ${target} litri`])];

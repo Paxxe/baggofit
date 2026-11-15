@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { productFacets, refineProducts } from "./refine";
 import type { BackpackProduct } from "./provider";
 
-const product = (id: string, overrides: Partial<BackpackProduct> = {}): BackpackProduct => ({ id, title: id, brand: "A", price: 100, ...overrides });
+const product = (id: string, overrides: Partial<BackpackProduct> = {}): BackpackProduct => ({ id, title: id, brand: "Store", maker: "A", price: 100, ...overrides });
 
 const list = [
-  product("cheap", { price: 40, brand: "A" }),
-  product("mid", { price: 120, brand: "B", matchReasons: ["capacity-in-range", "fits-airline-size"] }),
-  product("pricey", { price: 260, brand: "B", rating: { value: 4.7, count: 2000 } }),
-  product("hyped", { price: 90, brand: "C", rating: { value: 5, count: 2 } }),
+  product("cheap", { price: 40, maker: "A" }),
+  product("mid", { price: 120, maker: "B", matchReasons: ["capacity-in-range", "fits-airline-size"] }),
+  product("pricey", { price: 260, maker: "B", rating: { value: 4.7, count: 2000 } }),
+  product("hyped", { price: 90, maker: "C", rating: { value: 5, count: 2 } }),
 ];
 
 describe("refineProducts", () => {
@@ -31,7 +31,7 @@ describe("refineProducts", () => {
 });
 
 describe("productFacets", () => {
-  it("lists brands by relevance with counts, plus price span and confirmed fits", () => {
+  it("lists real brands alphabetically with counts, plus price span and confirmed fits", () => {
     expect(productFacets(list)).toEqual({
       brands: [{ name: "A", count: 1 }, { name: "B", count: 2 }, { name: "C", count: 1 }],
       priceRange: { min: 40, max: 260 },
