@@ -1,7 +1,87 @@
-import type { BackpackSearchCriteria } from "@/lib/products/provider";
+import type { BackpackSearchCriteria } from "../products/provider";
+import { estimateBackpackCapacity } from "../calculators/backpack-capacity";
 import { airlines, getVerifiedPolicy } from "./airlines";
+import { packingItems } from "./packing-items";
 
 type Lang = "en" | "it";
+
+/* ------------------------------------------------------------------ packing lists (same volumes as the planner) */
+
+type Kit = [itemId: string, quantity: number][];
+
+const liters = (value: number, language: Lang) =>
+  `${(Math.round(value * 10) / 10).toLocaleString(language === "it" ? "it-IT" : "en-GB")} L`;
+
+/** Packed volume and the planner's suggested range for a 3-day kit packed "minimalist". */
+function kitEstimate(kit: Kit, tripDays: number) {
+  const items = kit.map(([id, quantity]) => {
+    const item = packingItems.find((entry) => entry.id === id);
+    if (!item) throw new Error(`Unknown packing item ${id}`);
+    return { item, quantity };
+  });
+  const estimate = estimateBackpackCapacity({
+    tripDays,
+    packingStyle: "minimalist",
+    items: items.map(({ item, quantity }) => ({ name: item.id, quantity, volumeLiters: item.volumeLiters })),
+  });
+  return { items, estimate };
+}
+
+/** Item / quantity / liters table, with the total packed volume as the last row. */
+function kitTable(kit: Kit, tripDays: number, language: Lang) {
+  const { items, estimate } = kitEstimate(kit, tripDays);
+  return {
+    head: language === "it" ? ["Cosa", "Quanti", "Volume"] : ["Item", "How many", "Volume"],
+    rows: [
+      ...items.map(({ item, quantity }) => [item.label[language], String(quantity), liters(item.volumeLiters * quantity, language)]),
+      [language === "it" ? "Totale nello zaino" : "Total in the bag", "", liters(estimate.estimatedPackedVolumeLiters, language)],
+    ],
+  };
+}
+
+const ryanairSummerKit: Kit = [
+  ["t-shirt", 3], ["shorts", 1], ["trousers", 1], ["sweater", 1], ["underwear", 3], ["socks", 3], ["sandals", 1],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
+];
+const ryanairWinterKit: Kit = [
+  ["t-shirt", 3], ["sweater", 2], ["trousers", 1], ["underwear", 3], ["socks", 3],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
+];
+const ryanairWorkKit: Kit = [
+  ["shirt", 2], ["t-shirt", 1], ["trousers", 1], ["underwear", 3], ["socks", 3], ["laptop", 1],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1],
+];
+const ryanairKits = {
+  summer: ryanairSummerKit,
+  winter: ryanairWinterKit,
+  work: ryanairWorkKit,
+  // The usual mistake: a second pair of sneakers and a hoodie "just in case".
+  overpacked: [...ryanairSummerKit, ["sneakers", 1], ["hoodie", 1]] as Kit,
+};
+
+/** Packed liters and suggested range per kit, for the comparison table. */
+function kitSummaryTable(language: Lang) {
+  const names: Record<keyof typeof ryanairKits, Record<Lang, string>> = {
+    summer: { it: "City break estiva", en: "Summer city break" },
+    winter: { it: "City break invernale", en: "Winter city break" },
+    work: { it: "Viaggio di lavoro con laptop", en: "Work trip with laptop" },
+    overpacked: { it: "Estiva + sneakers e felpa in più", en: "Summer + extra sneakers and hoodie" },
+  };
+  return {
+    head: language === "it" ? ["Viaggio di 3 giorni", "Volume degli oggetti", "Zaino consigliato", "Nel 40×30×20?"] : ["3-day trip", "Packed volume", "Suggested bag", "In 40×30×20?"],
+    rows: (Object.keys(ryanairKits) as (keyof typeof ryanairKits)[]).map((key) => {
+      const { estimate } = kitEstimate(ryanairKits[key], 3);
+      const { min, max } = estimate.suggestedCapacityRangeLiters;
+      const fits = max <= 20;
+      return [
+        names[key][language],
+        liters(estimate.estimatedPackedVolumeLiters, language),
+        `${min}–${max} L`,
+        fits ? (language === "it" ? "Sì" : "Yes") : language === "it" ? "Al limite" : "Borderline",
+      ];
+    }),
+  };
+}
 
 /* ------------------------------------------------------------------ cabin size table (from verified rules) */
 
@@ -91,6 +171,8 @@ export interface TravelGuide {
 export const guides: TravelGuide[] = [
   {
     slug: "how-to-measure-a-backpack",
+    published: "2026-11-04",
+    updated: "2026-11-04",
     title: { en: "How to measure a backpack for travel", it: "Come misurare uno zaino da viaggio" },
     description: { en: "Measure a packed backpack accurately and compare the external dimensions with your baggage allowance.", it: "Misura correttamente uno zaino pieno e confronta le dimensioni esterne con la franchigia." },
     sections: {
@@ -108,6 +190,8 @@ export const guides: TravelGuide[] = [
   },
   {
     slug: "usable-capacity-vs-external-volume",
+    published: "2026-11-07",
+    updated: "2026-11-07",
     title: { en: "Usable capacity vs. external volume", it: "Capienza utile e volume esterno" },
     description: { en: "Understand why a backpack's advertised liters do not translate directly to its external dimensions or usable space.", it: "Scopri perché i litri dichiarati non corrispondono direttamente alle dimensioni esterne o allo spazio utile." },
     sections: {
@@ -326,8 +410,8 @@ export const guides: TravelGuide[] = [
   },
   {
     slug: "ryanair-backpack-40x30x20",
-    published: "2026-11-15",
-    updated: "2026-11-15",
+    published: "2026-11-11",
+    updated: "2026-11-11",
     category: { en: "Airline baggage", it: "Bagaglio aereo" },
     title: {
       en: "Ryanair backpack 40×30×20: how to choose one that fits the free bag",
@@ -535,8 +619,8 @@ export const guides: TravelGuide[] = [
   },
   {
     slug: "cabin-baggage-sizes-by-airline",
-    published: "2026-11-15",
-    updated: "2026-11-15",
+    published: "2026-11-14",
+    updated: "2026-11-14",
     category: { en: "Airline baggage", it: "Bagaglio aereo" },
     title: {
       en: "Cabin baggage sizes by airline: the complete table",
@@ -688,8 +772,8 @@ export const guides: TravelGuide[] = [
   },
   {
     slug: "trekking-backpack-guide",
-    published: "2026-11-16",
-    updated: "2026-11-16",
+    published: "2026-11-13",
+    updated: "2026-11-13",
     category: { en: "Trekking & outdoor", it: "Trekking e outdoor" },
     title: {
       en: "Trekking backpack: how to choose one for hiking and mountains",
@@ -885,6 +969,227 @@ export const guides: TravelGuide[] = [
       label: { en: "Find your trekking pack", it: "Calcola il tuo zaino da trekking" },
       text: { en: "Choose day hike, huts or tent, the days and the season: we'll work out the liters and show you real trekking packs.", it: "Scegli giornata, rifugio o tenda, i giorni e la stagione: calcoliamo i litri e ti mostriamo zaini da trekking veri." },
       href: "/backpack-configurator?mode=trekking",
+    },
+  },
+  {
+    slug: "ryanair-backpack-3-days-packing-list",
+    published: "2026-11-15",
+    updated: "2026-11-15",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "What fits in a Ryanair backpack for 3 days: the complete packing list",
+      it: "Cosa ci sta nello zaino Ryanair per 3 giorni: la lista completa",
+    },
+    description: {
+      en: "Summer, winter and work-trip packing lists for 3 days in Ryanair's free 40×30×20 cm bag, with the liters each item takes, what to wear on the plane and what to leave at home.",
+      it: "Le liste per 3 giorni in estate, in inverno e per lavoro nella borsa gratuita Ryanair 40×30×20 cm, con i litri di ogni oggetto, cosa indossare in volo e cosa lasciare a casa.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "La risposta breve: sì, 3 giorni ci stanno",
+          paragraphs: [
+            "La borsa gratuita Ryanair misura al massimo 40 × 30 × 20 cm: in uno zaino di quella misura lo spazio utile reale è di circa 18–20 litri. Per tre giorni bastano, a una condizione: abiti leggeri, niente doppioni e i capi più ingombranti addosso durante il volo.",
+            "Le liste qui sotto usano gli stessi volumi del nostro configuratore: per ogni oggetto trovi quanto spazio occupa davvero, così vedi subito dove va a finire lo spazio.",
+          ],
+        },
+        {
+          heading: "La lista per 3 giorni in estate",
+          paragraphs: ["Pensata per una city break da venerdì a domenica: in volo indossi sneakers, jeans e una maglietta. Nello zaino:"],
+          table: kitTable(ryanairSummerKit, 3, "it"),
+          tip: "I sandali vanno in fondo, contro lo schienale, dentro un sacchetto: sono pesanti e così non sbilanciano lo zaino.",
+        },
+        {
+          heading: "La lista per 3 giorni in inverno",
+          paragraphs: [
+            "In inverno lo spazio lo occupano i maglioni, non le magliette. Il trucco è semplice: in volo indossi giacca, scarpe chiuse e il maglione più spesso, e nello zaino metti solo gli strati sottili.",
+          ],
+          table: kitTable(ryanairWinterKit, 3, "it"),
+          tip: "Una giacca con tasche capienti è il tuo bagaglio extra: power bank, documenti e cuffie possono viaggiare lì e liberano spazio nello zaino.",
+        },
+        {
+          heading: "Quanto spazio serve: il confronto",
+          paragraphs: [
+            "Ai volumi degli oggetti il configuratore aggiunge un piccolo margine per le cose che non elenchi e per gli spazi vuoti tra un oggetto e l'altro. Il risultato è la capienza da cercare nello zaino:",
+          ],
+          table: kitSummaryTable("it"),
+          tip: "Il viaggio di lavoro sta nello zaino anche con il laptop, ma è il caso più pesante: il computer da solo occupa quasi quanto quattro magliette. Scegli uno zaino con scomparto imbottito, così il laptop fa da pannello rigido sulla schiena.",
+        },
+        {
+          heading: "Dove si sbaglia: le cose “in più”",
+          paragraphs: [
+            "L'ultima riga della tabella mostra l'errore più comune: un secondo paio di sneakers e una felpa “per sicurezza” aggiungono oltre 4 litri, e il viaggio passa da 15–20 L a 20–25 L. A quel punto lo zaino supera i 20 cm di profondità e al gate rischi il supplemento.",
+            "Prima di aggiungere un capo, chiediti se lo indosserai davvero. Per tre giorni, un paio di scarpe addosso e uno leggero nello zaino bastano quasi sempre.",
+          ],
+        },
+        {
+          heading: "Cosa indossare in volo",
+          paragraphs: ["Quello che hai addosso non conta nelle misure della borsa. Sfruttalo per i capi più voluminosi:"],
+          list: [
+            "Le scarpe più ingombranti: sneakers o scarpe chiuse, mai nello zaino.",
+            "La giacca o il cappotto, anche se in aereo fa caldo: puoi toglierlo una volta seduto.",
+            "Il maglione o la felpa più spessa.",
+            "Jeans o pantaloni pesanti: nello zaino metti quelli leggeri.",
+            "Una sciarpa grande, che in volo fa anche da coperta.",
+          ],
+        },
+        {
+          heading: "Liquidi e beauty: la regola dei 100 ml",
+          paragraphs: [
+            "Nel bagaglio a mano la regola standard è questa: contenitori da massimo 100 ml, tutti in una busta trasparente richiudibile da circa 1 litro, da mostrare ai controlli. Alcuni aeroporti con scanner di nuova generazione sono più permissivi, ma le regole cambiano spesso: conviene sempre restare nei 100 ml.",
+            "Per risparmiare spazio scegli i solidi: shampoo e balsamo in barretta, deodorante stick, dentifricio in pastiglie. Non contano come liquidi e occupano la metà.",
+          ],
+          tip: "Power bank e batterie al litio devono stare nel bagaglio a mano, mai in stiva: tienili nella tasca esterna dello zaino, così li tiri fuori subito ai controlli.",
+        },
+        {
+          heading: "Come sistemare lo zaino perché rientri nelle misure",
+          paragraphs: ["Con 20 litri il metodo conta quanto la lista. L'ordine che funziona meglio:"],
+          list: [
+            "Sul fondo le scarpe e gli oggetti pesanti, vicino alla schiena.",
+            "Al centro i vestiti arrotolati: riempiono gli angoli meglio di quelli piegati.",
+            "Calze e intimo dentro le scarpe o negli spazi vuoti.",
+            "In alto beauty e busta dei liquidi, per tirarli fuori ai controlli.",
+            "Tasche esterne quasi vuote: sono loro a far superare i 20 cm di profondità.",
+            "Cinghie di compressione strette: tengono lo spessore sotto controllo.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "Cosa lasciare a casa",
+          paragraphs: ["Per tre giorni, queste cose occupano spazio e quasi sempre restano nello zaino:"],
+          list: [
+            "Il phon: quasi tutti gli hotel e molti appartamenti ce l'hanno.",
+            "L'asciugamano grande: se ti serve, uno in microfibra occupa un quinto.",
+            "Libri di carta: meglio un ebook o il telefono.",
+            "Un cambio “per ogni evenienza”: per tre giorni non serve.",
+            "Caricatori separati per ogni dispositivo: un caricatore USB-C con due porte basta per tutto.",
+          ],
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Per tre giorni bastano circa 9 litri di oggetti, che in uno zaino da 15–20 L stanno nella borsa gratuita 40 × 30 × 20 cm. Indossa in volo scarpe, giacca e maglione più pesanti, porta i liquidi in formato 100 ml e lascia a casa i doppioni. E controlla sempre le regole della tua tariffa prima di partire.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "The short answer: yes, 3 days fit",
+          paragraphs: [
+            "Ryanair's free bag can be up to 40 × 30 × 20 cm: a backpack that size has about 18–20 liters of real usable space. That's enough for three days, on one condition: light clothes, no duplicates and your bulkiest items worn on the plane.",
+            "The lists below use the same volumes as our planner: for every item you see how much space it really takes, so it's clear where the room goes.",
+          ],
+        },
+        {
+          heading: "The 3-day summer packing list",
+          paragraphs: ["Built for a Friday-to-Sunday city break: on the plane you wear sneakers, jeans and a T-shirt. In the backpack:"],
+          table: kitTable(ryanairSummerKit, 3, "en"),
+          tip: "Put the sandals at the bottom, against the back panel, in a bag: they're heavy, and that way they don't unbalance the pack.",
+        },
+        {
+          heading: "The 3-day winter packing list",
+          paragraphs: [
+            "In winter the space goes to sweaters, not T-shirts. The trick is simple: wear your jacket, closed shoes and thickest sweater on the plane, and pack only the thin layers.",
+          ],
+          table: kitTable(ryanairWinterKit, 3, "en"),
+          tip: "A jacket with big pockets is your extra luggage: power bank, documents and earbuds can travel there and free up room in the bag.",
+        },
+        {
+          heading: "How much space you need: the comparison",
+          paragraphs: [
+            "On top of the items' volume, the planner adds a small margin for things you don't list and for the gaps between items. The result is the capacity to look for in a backpack:",
+          ],
+          table: kitSummaryTable("en"),
+          tip: "The work trip fits even with a laptop, but it's the heaviest case: the computer alone takes almost as much room as four T-shirts. Pick a bag with a padded sleeve, so the laptop works as a stiff back panel.",
+        },
+        {
+          heading: "Where people go wrong: the “extra” items",
+          paragraphs: [
+            "The last row of the table shows the most common mistake: a second pair of sneakers and a hoodie “just in case” add over 4 liters, and the trip goes from 15–20 L to 20–25 L. At that point the bag is deeper than 20 cm and you risk a fee at the gate.",
+            "Before adding something, ask yourself whether you'll really wear it. For three days, one pair of shoes on your feet and a light pair in the bag is almost always enough.",
+          ],
+        },
+        {
+          heading: "What to wear on the plane",
+          paragraphs: ["What you wear doesn't count towards the bag's size. Use it for the bulkiest items:"],
+          list: [
+            "Your bulkiest shoes: sneakers or closed shoes, never in the bag.",
+            "Your jacket or coat, even if the plane is warm: take it off once seated.",
+            "Your thickest sweater or hoodie.",
+            "Jeans or heavy trousers: pack the light ones.",
+            "A large scarf, which doubles as a blanket on board.",
+          ],
+        },
+        {
+          heading: "Liquids and toiletries: the 100 ml rule",
+          paragraphs: [
+            "In hand luggage the standard rule is: containers of up to 100 ml, all in a resealable clear bag of about 1 liter, shown at security. Some airports with new-generation scanners are more relaxed, but the rules change often: staying within 100 ml is always the safe choice.",
+            "To save space, go solid: shampoo and conditioner bars, stick deodorant, toothpaste tablets. They don't count as liquids and take half the room.",
+          ],
+          tip: "Power banks and lithium batteries must travel in hand luggage, never in the hold: keep them in the outer pocket so you can take them out quickly at security.",
+        },
+        {
+          heading: "How to pack so the bag stays within size",
+          paragraphs: ["With 20 liters, method matters as much as the list. The order that works best:"],
+          list: [
+            "Shoes and heavy items at the bottom, close to your back.",
+            "Rolled clothes in the middle: they fill corners better than folded ones.",
+            "Socks and underwear inside the shoes or in the gaps.",
+            "Toiletries and the liquids bag on top, ready for security.",
+            "Outer pockets almost empty: they're what pushes the depth past 20 cm.",
+            "Compression straps cinched: they keep the thickness in check.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "What to leave at home",
+          paragraphs: ["For three days, these take up room and almost always stay in the bag:"],
+          list: [
+            "A hair dryer: almost every hotel and many apartments have one.",
+            "A big towel: if you need one, a microfiber towel takes a fifth of the space.",
+            "Paper books: an ebook or your phone is enough.",
+            "A spare outfit “just in case”: you don't need it for three days.",
+            "A charger per device: one two-port USB-C charger covers everything.",
+          ],
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "Three days take about 9 liters of items, which fit in a 15–20 L backpack within the free 40 × 30 × 20 cm bag. Wear your heaviest shoes, jacket and sweater on the plane, keep liquids in 100 ml containers and leave duplicates at home. And always check your fare's rules before you fly.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks for 3 days in 40×30×20", it: "Zaini per 3 giorni in 40×30×20" },
+      intro: {
+        en: "16–20 L travel backpacks, checked against the Ryanair free-bag size when the maker states the dimensions.",
+        it: "Zaini da viaggio da 16–20 L, confrontati con le misure della borsa gratuita Ryanair quando il produttore le indica.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 16, max: 20 }, dimensionsCm: { height: 40, width: 30, depth: 20 } },
+    },
+    faq: {
+      it: [
+        { question: "Si può viaggiare 3 giorni solo con lo zaino Ryanair?", answer: "Sì. Per tre giorni servono circa 9 litri di oggetti, che stanno in uno zaino da 15–20 L entro 40 × 30 × 20 cm, se indossi in volo scarpe, giacca e maglione più ingombranti." },
+        { question: "Il laptop sta nello zaino gratuito Ryanair?", answer: "Sì, ma deve stare dentro l'unica borsa inclusa: non è un oggetto in più. Un laptop fino a 15” entra in uno zaino 40 × 30 × 20 con scomparto dedicato, lasciando spazio per due o tre giorni di vestiti leggeri." },
+        { question: "Meglio uno zaino o una borsa per la borsa gratuita?", answer: "Per 3 giorni lo zaino: se è squadrato sfrutta quasi tutto il volume 40 × 30 × 20, lascia le mani libere e si comprime con le cinghie. Una borsa morbida si deforma e supera più facilmente la profondità." },
+        { question: "Quante paia di scarpe portare per 3 giorni?", answer: "Due al massimo: quelle che indossi in volo e un paio leggero (sandali o scarpe da sera sottili) nello zaino. Un secondo paio di sneakers occupa circa 2,5 litri, più di un ottavo dello zaino." },
+        { question: "La giacca conta nelle misure della borsa?", answer: "No, se la indossi. Il personale controlla la borsa, non quello che hai addosso: per questo conviene viaggiare con i capi più voluminosi." },
+        { question: "E se lo zaino pieno non rientra al gate?", answer: "Devi pagare un supplemento per imbarcarlo, più caro che aggiungere il bagaglio in prenotazione. Misura lo zaino pieno a casa, soprattutto la profondità di 20 cm." },
+      ],
+      en: [
+        { question: "Can I travel for 3 days with just the Ryanair backpack?", answer: "Yes. Three days take about 9 liters of items, which fit in a 15–20 L backpack within 40 × 30 × 20 cm, if you wear your bulkiest shoes, jacket and sweater on the plane." },
+        { question: "Does a laptop fit in Ryanair's free backpack?", answer: "Yes, but it must go inside the one included bag: it isn't an extra item. A laptop up to 15” fits in a 40 × 30 × 20 backpack with a sleeve, leaving room for two or three days of light clothes." },
+        { question: "Backpack or tote for the free bag?", answer: "For 3 days, a backpack: if it's boxy it uses almost all of the 40 × 30 × 20 volume, keeps your hands free and compresses with its straps. A soft tote loses its shape and exceeds the depth more easily." },
+        { question: "How many pairs of shoes for 3 days?", answer: "Two at most: the ones you wear on the plane and a light pair (sandals or thin evening shoes) in the bag. A second pair of sneakers takes about 2.5 liters, more than an eighth of the bag." },
+        { question: "Does my jacket count towards the bag size?", answer: "Not if you wear it. Staff check the bag, not what you have on: that's why it pays to travel in your bulkiest clothes." },
+        { question: "What if the packed bag doesn't fit at the gate?", answer: "You pay a fee to check it in, which costs more than adding a bag when booking. Measure the packed bag at home, especially the 20 cm depth." },
+      ],
+    },
+    cta: {
+      label: { en: "Check your own list", it: "Prova con la tua lista" },
+      text: { en: "Choose Ryanair, the days and what you're bringing: we'll tell you if the 40×30×20 bag is enough.", it: "Scegli Ryanair, i giorni e cosa porti: ti diciamo se la borsa 40×30×20 basta." },
+      href: "/backpack-configurator",
     },
   },
 ];
