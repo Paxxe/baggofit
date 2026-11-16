@@ -27,17 +27,63 @@ function kitEstimate(kit: Kit, tripDays: number) {
   return { items, estimate };
 }
 
-/** Item / quantity / liters table, with the total packed volume as the last row. */
-function kitTable(kit: Kit, tripDays: number, language: Lang) {
+const kilos = (value: number, language: Lang) =>
+  `${(Math.round(value * 10) / 10).toLocaleString(language === "it" ? "it-IT" : "en-GB")} kg`;
+
+/** Total weight of a kit's contents (kg). */
+const kitWeight = (kit: Kit) => kitEstimate(kit, 1).items.reduce((total, { item, quantity }) => total + item.weightKg * quantity, 0);
+
+/** The planner's suggested capacity for a kit, e.g. "20–25 L". */
+function kitRange(kit: Kit, tripDays: number) {
+  const { min, max } = kitEstimate(kit, tripDays).estimate.suggestedCapacityRangeLiters;
+  return `${min}–${max} L`;
+}
+
+/** Item / quantity / liters (and optionally weight) table, with the totals as the last row. */
+function kitTable(kit: Kit, tripDays: number, language: Lang, withWeight = false) {
   const { items, estimate } = kitEstimate(kit, tripDays);
+  const it = language === "it";
   return {
-    head: language === "it" ? ["Cosa", "Quanti", "Volume"] : ["Item", "How many", "Volume"],
+    head: [...(it ? ["Cosa", "Quanti", "Volume"] : ["Item", "How many", "Volume"]), ...(withWeight ? [it ? "Peso" : "Weight"] : [])],
     rows: [
-      ...items.map(({ item, quantity }) => [item.label[language], String(quantity), liters(item.volumeLiters * quantity, language)]),
-      [language === "it" ? "Totale nello zaino" : "Total in the bag", "", liters(estimate.estimatedPackedVolumeLiters, language)],
+      ...items.map(({ item, quantity }) => [
+        item.label[language],
+        String(quantity),
+        liters(item.volumeLiters * quantity, language),
+        ...(withWeight ? [kilos(item.weightKg * quantity, language)] : []),
+      ]),
+      [
+        it ? "Totale nello zaino" : "Total in the bag",
+        "",
+        liters(estimate.estimatedPackedVolumeLiters, language),
+        ...(withWeight ? [kilos(kitWeight(kit), language)] : []),
+      ],
     ],
   };
 }
+
+/** Under-seat bag and cabin bag of one airline, from its verified rules. */
+function airlineRulesTable(airlineId: string, language: Lang, cost: { personal: string; cabin: string }) {
+  const rules = getVerifiedPolicy(airlineId)?.rules;
+  const personal = rules?.["personal-item"];
+  const cabin = rules?.["cabin-bag"];
+  if (!personal || !cabin) throw new Error(`Missing verified rules for ${airlineId}`);
+  const it = language === "it";
+  return {
+    head: it ? ["Bagaglio", "Misure massime", "Peso", "Costo"] : ["Bag", "Maximum size", "Weight", "Cost"],
+    rows: [
+      [it ? "Borsa sotto il sedile" : "Under-seat bag", sizeCell(personal, language), weightCell(personal.maxWeightKg, language), cost.personal],
+      [it ? "Bagaglio in cappelliera" : "Overhead cabin bag", sizeCell(cabin, language), weightCell(cabin.maxWeightKg, language), cost.cabin],
+    ],
+  };
+}
+
+/** easyJet's bigger free bag (45×36×20) holds up to 5 days. */
+const easyjetFiveDayKit: Kit = [
+  ["t-shirt", 5], ["shorts", 1], ["trousers", 2], ["sweater", 1], ["underwear", 5], ["socks", 5], ["sandals", 1],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
+];
+const easyjetLaptopKit: Kit = [...easyjetFiveDayKit.filter(([id]) => id !== "sandals"), ["laptop", 1]];
 
 const ryanairSummerKit: Kit = [
   ["t-shirt", 3], ["shorts", 1], ["trousers", 1], ["sweater", 1], ["underwear", 3], ["socks", 3], ["sandals", 1],
@@ -1189,6 +1235,370 @@ export const guides: TravelGuide[] = [
     cta: {
       label: { en: "Check your own list", it: "Prova con la tua lista" },
       text: { en: "Choose Ryanair, the days and what you're bringing: we'll tell you if the 40×30×20 bag is enough.", it: "Scegli Ryanair, i giorni e cosa porti: ti diciamo se la borsa 40×30×20 basta." },
+      href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "easyjet-backpack-45x36x20",
+    published: "2026-11-16",
+    updated: "2026-11-16",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "easyJet backpack 45×36×20: sizes, how many liters and what fits",
+      it: "Zaino easyJet 45×36×20: misure, quanti litri e cosa ci sta",
+    },
+    description: {
+      en: "easyJet's free under-seat bag is 45×36×20 cm, bigger than Ryanair's: how many liters that really is, what fits for up to 5 days and how to pick a backpack that passes the gate.",
+      it: "La borsa gratuita easyJet sotto il sedile misura 45×36×20 cm, più di quella Ryanair: quanti litri sono davvero, cosa ci sta per un viaggio fino a 5 giorni e come scegliere uno zaino che passa al gate.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le misure ufficiali easyJet",
+          paragraphs: [
+            "Ogni biglietto easyJet include un bagaglio a mano piccolo da mettere sotto il sedile davanti. Il trolley grande in cappelliera invece è un extra, salvo alcune tariffe e l'abbonamento easyJet Plus.",
+            "Le regole dalla pagina ufficiale easyJet, verificate da noi l'11 novembre 2026:",
+          ],
+          table: airlineRulesTable("easyjet", "it", {
+            personal: "Incluso in tutte le tariffe",
+            cabin: "A pagamento (incluso con easyJet Plus e Inclusive Plus)",
+          }),
+          tip: "Per easyJet le misure includono ruote e maniglie. Le regole possono cambiare: controlla sempre la tua prenotazione prima di partire.",
+        },
+        {
+          heading: "Quanti litri entrano in 45×36×20",
+          paragraphs: [
+            "45 × 36 × 20 cm fanno circa 32 litri, ma è il volume di una scatola. Uno zaino ha angoli arrotondati, imbottiture e tasche: lo spazio utile reale è di circa 25–27 litri.",
+            "In pratica conviene cercare uno zaino dichiarato tra 20 e 26 litri, con misure esterne entro 45 × 36 × 20 cm. È circa un terzo in più della borsa gratuita Ryanair (40 × 30 × 20), abbastanza per qualche giorno in più.",
+          ],
+          table: {
+            head: ["Capienza dichiarata", "Quanto ci sta", "Per easyJet"],
+            rows: [
+              ["Fino a 20 L", "2–3 notti", "Entra facilmente, ed è valido anche per Ryanair"],
+              ["20–26 L", "4–5 notti con abiti leggeri", "La scelta ideale, se le misure esterne rientrano"],
+              ["27–30 L", "Una settimana", "Al limite: solo se è squadrato e poco profondo"],
+              ["Oltre 30 L", "Più di una settimana", "Troppo grande per la borsa gratuita"],
+            ],
+          },
+        },
+        {
+          heading: "Cosa ci sta: la lista per 5 giorni",
+          paragraphs: [
+            `Con abiti leggeri e i capi più pesanti indossati in volo, 45 × 36 × 20 basta per cinque giorni. Gli oggetti qui sotto occupano circa ${liters(kitEstimate(easyjetFiveDayKit, 5).estimate.estimatedPackedVolumeLiters, "it")}: il nostro configuratore consiglia uno zaino da ${kitRange(easyjetFiveDayKit, 5)}.`,
+          ],
+          table: kitTable(easyjetFiveDayKit, 5, "it"),
+          tip: `Viaggi per lavoro? Togli i sandali e aggiungi un laptop da 15”: il configuratore consiglia comunque ${kitRange(easyjetLaptopKit, 5)}, quindi entra nella borsa gratuita.`,
+        },
+        {
+          heading: "Zaino o trolley piccolo?",
+          paragraphs: [
+            "easyJet accetta sotto il sedile anche un trolley piccolo, ma ruote e maniglie contano nelle misure e pesano: a parità di misure esterne, un trolley ha meno spazio utile e pesa di più a vuoto.",
+            "Per questo, con la borsa gratuita, lo zaino è quasi sempre la scelta migliore: sfrutta tutti i 45 × 36 × 20 cm, si comprime con le cinghie e non ha parti rigide che superano le misure.",
+          ],
+        },
+        {
+          heading: "Cosa guardare prima di comprare",
+          paragraphs: ["Molti zaini sono venduti come “compatibili easyJet”: conviene verificare. I dettagli che contano:"],
+          list: [
+            "Misure esterne dichiarate dal produttore, con lo zaino pieno: altezza, larghezza e profondità.",
+            "Forma squadrata e apertura a libro: usi tutto lo spazio e lo prepari come una valigia.",
+            "Profondità sotto 20 cm anche quando è pieno: è la misura che si supera più spesso.",
+            "Tasche esterne piatte e cinghie di compressione.",
+            "Peso a vuoto sotto 1,2 kg.",
+            "Scomparto laptop imbottito, se lo usi anche per lavoro.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "Lo stesso zaino va bene anche per Ryanair e Wizz Air?",
+          paragraphs: [
+            "Non sempre. Ryanair e Wizz Air accettano gratis una borsa di 40 × 30 × 20 cm, più piccola di quella easyJet. Uno zaino da 45 × 36 × 20 pieno non entra nel loro misuratore.",
+            "Se voli spesso con compagnie diverse, scegli uno zaino da 18–20 litri entro 40 × 30 × 20 cm: va bene con tutte. Se voli soprattutto easyJet, sfrutta lo spazio in più con uno zaino da 20–26 litri.",
+          ],
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "La borsa gratuita easyJet misura 45 × 36 × 20 cm, ruote e maniglie comprese: in uno zaino da 20–26 litri ci stanno fino a cinque giorni di abiti leggeri. Misura lo zaino pieno, soprattutto la profondità, e controlla sempre le regole della tua tariffa.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "easyJet's official sizes",
+          paragraphs: [
+            "Every easyJet ticket includes a small cabin bag that goes under the seat in front. The large overhead bag is an extra, except on some fares and with an easyJet Plus membership.",
+            "The rules from easyJet's official page, checked by us on 11 November 2026:",
+          ],
+          table: airlineRulesTable("easyjet", "en", {
+            personal: "Included in every fare",
+            cabin: "Paid (included with easyJet Plus and Inclusive Plus)",
+          }),
+          tip: "For easyJet the sizes include wheels and handles. Rules can change: always check your booking before you travel.",
+        },
+        {
+          heading: "How many liters fit in 45×36×20",
+          paragraphs: [
+            "45 × 36 × 20 cm is about 32 liters, but that's the volume of a box. A backpack has rounded corners, padding and pockets: the real usable space is about 25–27 liters.",
+            "In practice, look for a backpack rated 20–26 liters with an outer size within 45 × 36 × 20 cm. That's about a third more than Ryanair's free bag (40 × 30 × 20), enough for a few extra days.",
+          ],
+          table: {
+            head: ["Rated capacity", "What it holds", "For easyJet"],
+            rows: [
+              ["Up to 20 L", "2–3 nights", "Fits easily, and works for Ryanair too"],
+              ["20–26 L", "4–5 nights with light clothes", "The sweet spot, if the outer size fits"],
+              ["27–30 L", "A week", "Borderline: only if boxy and slim"],
+              ["Over 30 L", "More than a week", "Too big for the free bag"],
+            ],
+          },
+        },
+        {
+          heading: "What fits: a 5-day packing list",
+          paragraphs: [
+            `With light clothes and your heaviest items worn on the plane, 45 × 36 × 20 is enough for five days. The items below take about ${liters(kitEstimate(easyjetFiveDayKit, 5).estimate.estimatedPackedVolumeLiters, "en")}: our planner suggests a ${kitRange(easyjetFiveDayKit, 5)} backpack.`,
+          ],
+          table: kitTable(easyjetFiveDayKit, 5, "en"),
+          tip: `Travelling for work? Swap the sandals for a 15” laptop: the planner still suggests ${kitRange(easyjetLaptopKit, 5)}, so it fits the free bag.`,
+        },
+        {
+          heading: "Backpack or small trolley?",
+          paragraphs: [
+            "easyJet also accepts a small trolley under the seat, but wheels and handles count towards the size and add weight: for the same outer size, a trolley has less usable space and weighs more empty.",
+            "That's why, for the free bag, a backpack is almost always the better choice: it uses the whole 45 × 36 × 20 cm, compresses with its straps and has no rigid parts sticking out.",
+          ],
+        },
+        {
+          heading: "What to check before you buy",
+          paragraphs: ["Plenty of backpacks are sold as “easyJet compatible”: it's worth checking. The details that matter:"],
+          list: [
+            "The maker's stated outer size, packed: height, width and depth.",
+            "A boxy shape and clamshell opening: you use all the space and pack it like a suitcase.",
+            "Depth under 20 cm even when full: it's the size people exceed most often.",
+            "Flat outer pockets and compression straps.",
+            "Empty weight under 1.2 kg.",
+            "A padded laptop sleeve, if you also use it for work.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "Does the same backpack work for Ryanair and Wizz Air?",
+          paragraphs: [
+            "Not always. Ryanair and Wizz Air take a free bag of 40 × 30 × 20 cm, smaller than easyJet's. A packed 45 × 36 × 20 backpack won't go in their sizer.",
+            "If you fly with different airlines, pick an 18–20 liter backpack within 40 × 30 × 20 cm: it works with all of them. If you mostly fly easyJet, use the extra room with a 20–26 liter bag.",
+          ],
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "easyJet's free bag is 45 × 36 × 20 cm, wheels and handles included: a 20–26 liter backpack holds up to five days of light clothes. Measure the bag packed, especially the depth, and always check your fare's rules.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks that fit 45×36×20", it: "Zaini che rientrano in 45×36×20" },
+      intro: {
+        en: "20–26 L travel backpacks, checked against easyJet's free-bag size when the maker states the dimensions.",
+        it: "Zaini da viaggio da 20–26 L, confrontati con le misure della borsa gratuita easyJet quando il produttore le indica.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 20, max: 26 }, dimensionsCm: { height: 45, width: 36, depth: 20 } },
+    },
+    faq: {
+      it: [
+        { question: "Qual è la misura del bagaglio a mano gratuito easyJet?", answer: "45 × 36 × 20 cm, ruote e maniglie comprese, da mettere sotto il sedile davanti. Verifica sempre le regole della tua tariffa sul sito easyJet." },
+        { question: "C'è un limite di peso per la borsa gratuita easyJet?", answer: "Sì, 15 kg. In più devi poterla sollevare e sistemare da solo." },
+        { question: "Uno zaino da 25 litri va bene per easyJet?", answer: "Di solito sì, se le misure esterne dichiarate rientrano in 45 × 36 × 20 cm. Controlla soprattutto la profondità con lo zaino pieno." },
+        { question: "Quanto costa il bagaglio a mano grande easyJet?", answer: "Il bagaglio da 56 × 45 × 25 cm in cappelliera è a pagamento e il prezzo cambia in base al volo. È incluso con easyJet Plus e con la tariffa Inclusive Plus." },
+        { question: "Posso usare lo zaino easyJet anche su Ryanair?", answer: "Solo se rientra anche in 40 × 30 × 20 cm. Uno zaino che sfrutta tutti i 45 × 36 × 20 cm è troppo grande per la borsa gratuita Ryanair." },
+        { question: "Gli zaini “compatibili easyJet” sono garantiti?", answer: "No, è un'indicazione del venditore. Confronta le misure esterne reali con quelle ufficiali e misura lo zaino pieno prima di partire." },
+      ],
+      en: [
+        { question: "What size is easyJet's free cabin bag?", answer: "45 × 36 × 20 cm, wheels and handles included, under the seat in front. Always check your fare's rules on easyJet's site." },
+        { question: "Is there a weight limit for easyJet's free bag?", answer: "Yes, 15 kg. You also need to be able to lift and stow it yourself." },
+        { question: "Is a 25 liter backpack OK for easyJet?", answer: "Usually, if its stated outer size is within 45 × 36 × 20 cm. Check the depth with the bag packed." },
+        { question: "How much is easyJet's large cabin bag?", answer: "The 56 × 45 × 25 cm overhead bag is paid and the price depends on the flight. It's included with easyJet Plus and the Inclusive Plus fare." },
+        { question: "Can I use my easyJet backpack on Ryanair?", answer: "Only if it also fits 40 × 30 × 20 cm. A backpack that uses the full 45 × 36 × 20 cm is too big for Ryanair's free bag." },
+        { question: "Are “easyJet compatible” backpacks guaranteed?", answer: "No, it's the seller's claim. Compare the real outer size with the official one and measure the bag packed before you travel." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose easyJet, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli easyJet, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
+      href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "wizz-air-backpack-40x30x20",
+    published: "2026-11-16",
+    updated: "2026-11-16",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "Wizz Air free bag 40×30×20: sizes, 10 kg limit and what fits",
+      it: "Bagaglio gratuito Wizz Air 40×30×20: misure, limite di 10 kg e cosa ci sta",
+    },
+    description: {
+      en: "Wizz Air's free under-seat bag: 40×30×20 cm and up to 10 kg. How many liters fit, how much a packed bag really weighs, and when WIZZ Priority is worth it.",
+      it: "Il bagaglio gratuito Wizz Air sotto il sedile: 40×30×20 cm e fino a 10 kg. Quanti litri entrano, quanto pesa davvero uno zaino pieno e quando conviene WIZZ Priority.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le misure ufficiali Wizz Air",
+          paragraphs: [
+            "Ogni passeggero Wizz Air può portare gratis un bagaglio a mano da mettere sotto il sedile davanti: una borsa per laptop, una borsetta o uno zaino piccolo. Il trolley in cappelliera invece richiede WIZZ Priority.",
+            "Le regole dalla pagina ufficiale Wizz Air, verificate da noi il 12 novembre 2026:",
+          ],
+          table: airlineRulesTable("wizz-air", "it", {
+            personal: "Gratuito per tutti",
+            cabin: "Con WIZZ Priority (a pagamento)",
+          }),
+          tip: "Per Wizz Air maniglie e ruote non sono conteggiate, ma le ruote possono aggiungere al massimo 5 cm. Le regole possono cambiare: controlla sempre la tua prenotazione.",
+        },
+        {
+          heading: "La differenza con Ryanair: il limite di 10 kg",
+          paragraphs: [
+            "Le misure sono le stesse della borsa gratuita Ryanair, 40 × 30 × 20 cm. La differenza è il peso: Wizz Air indica un massimo di 10 kg, Ryanair non indica un limite.",
+            "Lo spazio utile reale in uno zaino di quella misura è di circa 18–20 litri: cerca uno zaino dichiarato tra 16 e 20 litri con misure esterne entro 40 × 30 × 20 cm.",
+          ],
+        },
+        {
+          heading: "Quanto pesa davvero uno zaino pieno per 3 giorni",
+          paragraphs: [
+            `Il limite di 10 kg spaventa, ma con i vestiti è difficile superarlo. Ecco una lista per tre giorni d'estate con volume e peso di ogni oggetto: in tutto ${kilos(kitWeight(ryanairSummerKit), "it")}, a cui aggiungere il peso dello zaino vuoto (di solito 0,5–1 kg).`,
+          ],
+          table: kitTable(ryanairSummerKit, 3, "it", true),
+          tip: `Con un laptop da 15” (circa 1,6 kg) arrivi a circa ${kilos(kitWeight(ryanairSummerKit) + 1.6 + 1, "it")} contando anche lo zaino: ancora ben sotto i 10 kg. A pesare sono beauty, scarpe e libri, non le magliette.`,
+        },
+        {
+          heading: "Cosa ci sta in 40×30×20",
+          paragraphs: ["Con abiti leggeri e i capi più ingombranti addosso in volo, la borsa gratuita basta per un weekend lungo:"],
+          table: {
+            head: ["Capienza dichiarata", "Quanto ci sta", "Per Wizz Air"],
+            rows: [
+              ["Fino a 15 L", "Un giorno, o un weekend essenziale", "Entra facilmente, anche pieno"],
+              ["16–20 L", "2–3 notti con abiti leggeri", "La scelta ideale, se le misure esterne rientrano"],
+              ["21–24 L", "3–4 notti", "Al limite: solo se è squadrato e non troppo pieno"],
+              ["Oltre 24 L", "Una settimana", "Troppo grande per la borsa gratuita"],
+            ],
+          },
+          tip: "Le scarpe più pesanti, la giacca e il maglione indossali in volo: non contano né nelle misure né nel peso della borsa.",
+        },
+        {
+          heading: "Zaino o trolley piccolo sotto il sedile?",
+          paragraphs: [
+            "Wizz Air non conta maniglie e ruote nelle misure, ma le ruote possono aggiungere al massimo 5 cm. Un trolley piccolo è quindi ammesso, però pesa di più a vuoto e ha meno spazio utile di uno zaino con le stesse misure esterne.",
+            "Con un limite di 10 kg ogni chilo conta: uno zaino leggero, sotto 1 kg a vuoto, ti lascia più margine per il contenuto.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "Quando conviene WIZZ Priority",
+          paragraphs: [
+            "WIZZ Priority aggiunge un trolley da 55 × 40 × 23 cm e fino a 10 kg in cappelliera, oltre alla borsa gratuita. Conviene quando il viaggio supera i 3–4 giorni, quando porti scarpe in più o attrezzatura, o in inverno con capi pesanti.",
+            "Se aggiungi il bagaglio, fallo in prenotazione: al gate il supplemento per una borsa che non entra nel misuratore costa di più.",
+          ],
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "La borsa gratuita Wizz Air misura 40 × 30 × 20 cm e può pesare fino a 10 kg. Uno zaino da 16–20 litri, leggero e squadrato, basta per 2–3 notti e resta lontano dal limite di peso. Misuralo pieno, soprattutto la profondità, e controlla sempre la tua tariffa.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "Wizz Air's official sizes",
+          paragraphs: [
+            "Every Wizz Air passenger can bring a free carry-on that goes under the seat in front: a laptop bag, a purse or a small backpack. The overhead trolley needs WIZZ Priority.",
+            "The rules from Wizz Air's official page, checked by us on 12 November 2026:",
+          ],
+          table: airlineRulesTable("wizz-air", "en", {
+            personal: "Free for everyone",
+            cabin: "With WIZZ Priority (paid)",
+          }),
+          tip: "For Wizz Air handles and wheels aren't counted, but wheels may add at most 5 cm. Rules can change: always check your booking.",
+        },
+        {
+          heading: "The difference from Ryanair: the 10 kg limit",
+          paragraphs: [
+            "The size is the same as Ryanair's free bag, 40 × 30 × 20 cm. The difference is weight: Wizz Air states a 10 kg maximum, Ryanair states no limit.",
+            "The real usable space in a backpack that size is about 18–20 liters: look for a bag rated 16–20 liters with an outer size within 40 × 30 × 20 cm.",
+          ],
+        },
+        {
+          heading: "How much a packed bag for 3 days really weighs",
+          paragraphs: [
+            `The 10 kg limit sounds scary, but with clothes it's hard to exceed. Here's a 3-day summer list with the volume and weight of every item: ${kilos(kitWeight(ryanairSummerKit), "en")} in all, plus the empty bag (usually 0.5–1 kg).`,
+          ],
+          table: kitTable(ryanairSummerKit, 3, "en", true),
+          tip: `With a 15” laptop (about 1.6 kg) you reach about ${kilos(kitWeight(ryanairSummerKit) + 1.6 + 1, "en")} including the bag: still well under 10 kg. Toiletries, shoes and books are what weigh, not T-shirts.`,
+        },
+        {
+          heading: "What fits in 40×30×20",
+          paragraphs: ["With light clothes and your bulkiest items worn on the plane, the free bag is enough for a long weekend:"],
+          table: {
+            head: ["Rated capacity", "What it holds", "For Wizz Air"],
+            rows: [
+              ["Up to 15 L", "A day, or a minimal weekend", "Fits easily, even full"],
+              ["16–20 L", "2–3 nights with light clothes", "The sweet spot, if the outer size fits"],
+              ["21–24 L", "3–4 nights", "Borderline: only if boxy and not overstuffed"],
+              ["Over 24 L", "A week", "Too big for the free bag"],
+            ],
+          },
+          tip: "Wear your heaviest shoes, jacket and sweater on the plane: they count towards neither the size nor the weight of the bag.",
+        },
+        {
+          heading: "Backpack or small trolley under the seat?",
+          paragraphs: [
+            "Wizz Air doesn't count handles and wheels, but wheels may add at most 5 cm. A small trolley is allowed, but it weighs more empty and has less usable space than a backpack with the same outer size.",
+            "With a 10 kg limit every kilo counts: a light backpack, under 1 kg empty, leaves more room for what's inside.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "When WIZZ Priority is worth it",
+          paragraphs: [
+            "WIZZ Priority adds a 55 × 40 × 23 cm trolley of up to 10 kg in the overhead bin, on top of the free bag. It's worth it for trips longer than 3–4 days, when you bring extra shoes or gear, or in winter with heavy clothes.",
+            "If you add the bag, do it when booking: at the gate, the fee for a bag that doesn't fit the sizer costs more.",
+          ],
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "Wizz Air's free bag is 40 × 30 × 20 cm and up to 10 kg. A light, boxy 16–20 liter backpack holds 2–3 nights and stays well under the weight limit. Measure it packed, especially the depth, and always check your fare.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks for Wizz Air's free bag", it: "Zaini per il bagaglio gratuito Wizz Air" },
+      intro: {
+        en: "16–20 L travel backpacks, checked against the 40×30×20 size when the maker states the dimensions. Lighter bags rank higher.",
+        it: "Zaini da viaggio da 16–20 L, confrontati con le misure 40×30×20 quando il produttore le indica. Gli zaini leggeri salgono in classifica.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 16, max: 20 }, dimensionsCm: { height: 40, width: 30, depth: 20 }, lightweight: true },
+    },
+    faq: {
+      it: [
+        { question: "Qual è la misura del bagaglio gratuito Wizz Air?", answer: "40 × 30 × 20 cm, da mettere sotto il sedile davanti, con un peso massimo di 10 kg. Verifica sempre le regole della tua tariffa sul sito Wizz Air." },
+        { question: "Lo zaino Wizz Air viene pesato?", answer: "Il limite è di 10 kg e il personale può controllarlo. Con abiti per 2–3 giorni di solito si resta tra 5 e 7 kg, zaino compreso." },
+        { question: "Posso portare un trolley piccolo gratis su Wizz Air?", answer: "Sì, se rientra in 40 × 30 × 20 cm. Maniglie e ruote non sono conteggiate, ma le ruote possono aggiungere al massimo 5 cm." },
+        { question: "Cosa include WIZZ Priority?", answer: "Un trolley da 55 × 40 × 23 cm e fino a 10 kg in cappelliera, oltre al bagaglio gratuito sotto il sedile." },
+        { question: "Lo stesso zaino va bene per Ryanair?", answer: "Sì: la borsa gratuita Ryanair ha le stesse misure, 40 × 30 × 20 cm. Va bene anche per easyJet, che accetta fino a 45 × 36 × 20 cm." },
+        { question: "La giacca conta nel peso?", answer: "No, se la indossi. Viaggia con scarpe, giacca e maglione più pesanti addosso: non contano né nelle misure né nel peso." },
+      ],
+      en: [
+        { question: "What size is Wizz Air's free bag?", answer: "40 × 30 × 20 cm, under the seat in front, up to 10 kg. Always check your fare's rules on Wizz Air's site." },
+        { question: "Is the Wizz Air bag weighed?", answer: "The limit is 10 kg and staff can check it. With clothes for 2–3 days you're usually between 5 and 7 kg, bag included." },
+        { question: "Can I bring a small trolley for free on Wizz Air?", answer: "Yes, if it fits 40 × 30 × 20 cm. Handles and wheels aren't counted, but wheels may add at most 5 cm." },
+        { question: "What does WIZZ Priority include?", answer: "A 55 × 40 × 23 cm trolley of up to 10 kg in the overhead bin, on top of the free under-seat bag." },
+        { question: "Does the same backpack work for Ryanair?", answer: "Yes: Ryanair's free bag has the same size, 40 × 30 × 20 cm. It works for easyJet too, which allows up to 45 × 36 × 20 cm." },
+        { question: "Does my jacket count towards the weight?", answer: "Not if you wear it. Travel in your heaviest shoes, jacket and sweater: they count towards neither size nor weight." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose Wizz Air, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli Wizz Air, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
       href: "/backpack-configurator",
     },
   },
