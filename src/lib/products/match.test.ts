@@ -26,6 +26,20 @@ describe("matchBackpacks", () => {
     expect(results[1].matchReasons).toContain("capacity-close");
   });
 
+  it("keeps a bag rated above the range when its stated size fits the airline limit", () => {
+    const limit = { height: 40, width: 30, depth: 20 };
+    const results = matchBackpacks(
+      [
+        entry({ id: "fits", title: "Cabin 28L", options: [{ capacityLiters: 28, price: 65 }], dimensionsCm: { height: 39, width: 30, depth: 20 } }),
+        entry({ id: "too-big", title: "Cabin 36L", options: [{ capacityLiters: 36, price: 70 }], dimensionsCm: { height: 45, width: 30, depth: 20 } }),
+        entry({ id: "no-size", title: "Mystery 28L", options: [{ capacityLiters: 28, price: 40 }] }),
+      ],
+      { capacityRangeLiters: { min: 16, max: 20 }, dimensionsCm: limit },
+    );
+    expect(results.map((product) => product.id)).toEqual(["fits"]);
+    expect(results[0].matchReasons).toEqual(expect.arrayContaining(["capacity-over-fits-size", "fits-airline-size"]));
+  });
+
   it("picks the variant closest to the target and links to it", () => {
     const [result] = matchBackpacks(
       [entry({

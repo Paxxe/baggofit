@@ -315,6 +315,12 @@ function suitcaseSize(liters: number) {
   return { en: "extra large 80 cm", it: "extra large 80 cm" };
 }
 
+/**
+ * Cabin-backpack specialists that generic searches miss: each gets its own query for travel backpacks.
+ * They sell through their own store and Italian retailers, all in the global catalog.
+ */
+export const featuredTravelBrands = ["CabinZero"];
+
 const italianType: Record<BackpackCategory, string> = {
   everyday: "zaino da città",
   travel: "zaino da viaggio",
@@ -350,7 +356,8 @@ export function buildQueries(criteria: BackpackSearchCriteria) {
   const kind = criteria.backpackType === "hiking" && target > 30 ? "trekking backpack" : criteria.backpackType ? typeQuery[criteria.backpackType] : "backpack";
   const laptop = criteria.laptopRequired ? ` with laptop compartment${criteria.laptopInches ? ` ${criteria.laptopInches} inch` : ""}` : "";
   const italian = criteria.backpackType ? italianType[criteria.backpackType] : "zaino";
-  return [...new Set([`${kind} ${target}L${laptop}`, `${target} liter backpack`, `${target}L rucksack${criteria.laptopRequired ? " laptop" : ""}`, `${italian} ${target} litri`])];
+  const featured = criteria.backpackType === "travel" ? featuredTravelBrands.map((brand) => `${brand} backpack ${target}L`) : [];
+  return [...new Set([`${kind} ${target}L${laptop}`, `${target} liter backpack`, `${target}L rucksack${criteria.laptopRequired ? " laptop" : ""}`, `${italian} ${target} litri`, ...featured])];
 }
 
 export class ShopifyGlobalCatalogProvider implements ProductRecommendationProvider {

@@ -54,6 +54,7 @@ const copy = {
     reasons: {
       "capacity-in-range": "Capacity in your range",
       "capacity-close": "Capacity close to your range",
+      "capacity-over-fits-size": "Rated larger, but within the airline size",
       "laptop-size-confirmed": "Fits your laptop",
       "laptop-sleeve": "Laptop sleeve (size not stated)",
       "fits-airline-size": "Within the airline size",
@@ -97,6 +98,7 @@ const copy = {
     reasons: {
       "capacity-in-range": "Capienza nel tuo intervallo",
       "capacity-close": "Capienza vicina al tuo intervallo",
+      "capacity-over-fits-size": "Litri dichiarati più alti, ma nelle misure",
       "laptop-size-confirmed": "Ci sta il tuo laptop",
       "laptop-sleeve": "Tasca laptop (misura non indicata)",
       "fits-airline-size": "Nelle misure della compagnia",

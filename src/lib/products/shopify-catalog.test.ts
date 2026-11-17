@@ -78,6 +78,7 @@ describe("buildQueries", () => {
       "30 liter backpack",
       "30L rucksack laptop",
       "zaino da viaggio 30 litri",
+      "CabinZero backpack 30L",
     ]);
     expect(buildQueries({ capacityRangeLiters: { min: 10, max: 15 } })).toEqual(["backpack 15L", "15 liter backpack", "15L rucksack", "zaino 15 litri"]);
   });

@@ -32,6 +32,8 @@ export interface BackpackProduct {
 export type MatchReason =
   | "capacity-in-range"
   | "capacity-close"
+  /** Rated above the range, but its stated outer size fits the airline limit. */
+  | "capacity-over-fits-size"
   | "laptop-size-confirmed"
   | "laptop-sleeve"
   | "fits-airline-size"

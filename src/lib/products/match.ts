@@ -66,6 +66,11 @@ function scoreEntry(entry: CatalogEntry, criteria: BackpackSearchCriteria): Scor
   } else if (capacity >= min - belowTolerance(min) && capacity <= max + aboveTolerance(max)) {
     score += 40 - Math.abs(capacity - target) * 3;
     reasons.push("capacity-close");
+  } else if (capacity > max && criteria.dimensionsCm && entry.dimensionsCm && fitsWithin(entry.dimensionsCm, criteria.dimensionsCm)) {
+    // Makers' liters are generous (a "28 L" cabin bag made for 40×30×20): what counts for the airline
+    // is the stated outer size, so a bigger rating that fits it is still a good pick.
+    score += 45;
+    reasons.push("capacity-over-fits-size");
   } else {
     return null;
   }
