@@ -85,6 +85,12 @@ const easyjetFiveDayKit: Kit = [
 ];
 const easyjetLaptopKit: Kit = [...easyjetFiveDayKit.filter(([id]) => id !== "sandals"), ["laptop", 1]];
 
+/** A week in a cabin trolley: the kit for the full-size carry-on guides (BA, ITA, Vueling). */
+const cabinWeekKit: Kit = [
+  ["t-shirt", 6], ["shirt", 1], ["shorts", 1], ["trousers", 2], ["sweater", 1], ["underwear", 7], ["socks", 7], ["sneakers", 1],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
+];
+
 const ryanairSummerKit: Kit = [
   ["t-shirt", 3], ["shorts", 1], ["trousers", 1], ["sweater", 1], ["underwear", 3], ["socks", 3], ["sandals", 1],
   ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
@@ -1600,6 +1606,411 @@ export const guides: TravelGuide[] = [
       label: { en: "Check what fits", it: "Verifica cosa ci sta" },
       text: { en: "Choose Wizz Air, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli Wizz Air, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
       href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "vueling-cabin-bag-55x40x20",
+    published: "2026-11-16",
+    updated: "2026-11-16",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "Vueling hand luggage: free 40×30×20 bag and the 55×40×20 cabin bag",
+      it: "Bagaglio a mano Vueling: borsa gratuita 40×30×20 e trolley 55×40×20",
+    },
+    description: {
+      en: "Vueling's free under-seat bag is 40×30×20 cm; the overhead bag is 55×40×20 cm and 10 kg, paid. Why 20 cm deep matters, what fits and which bag to buy.",
+      it: "Con Vueling la borsa gratuita sotto il sedile è 40×30×20 cm; il trolley in cappelliera è 55×40×20 cm e 10 kg, a pagamento. Perché i 20 cm di profondità contano, cosa ci sta e quale bagaglio comprare.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le misure ufficiali Vueling",
+          paragraphs: [
+            "Con tutte le tariffe Vueling (Fly Light, Fly, Fly Grande e Fly Pro) porti gratis una borsa sotto il sedile. Il secondo bagaglio, quello in cappelliera, si paga con il servizio “2 bagagli” oppure è incluso scegliendo i posti Space.",
+            "Le regole dalla pagina ufficiale Vueling, verificate da noi il 12 novembre 2026:",
+          ],
+          table: airlineRulesTable("vueling", "it", { personal: "Gratuita in tutte le tariffe", cabin: "Servizio 2 bagagli o posti Space" }),
+          tip: "Le regole possono cambiare: controlla sempre la tua prenotazione sul sito Vueling.",
+        },
+        {
+          heading: "Attenzione: il trolley Vueling è profondo 20 cm, non 23",
+          paragraphs: [
+            "Quasi tutte le compagnie accettano trolley da 55 × 40 × 23 cm, e la maggior parte dei trolley in vendita è fatta su quella misura. Vueling chiede invece 20 cm di profondità: 3 cm in meno, che un trolley pieno supera facilmente.",
+            "Se voli spesso con Vueling, cerca un trolley con profondità dichiarata di 20 cm (ruote comprese) o un borsone morbido che puoi schiacciare. Uno spessore di 20 cm va bene anche per tutte le altre compagnie.",
+          ],
+        },
+        {
+          heading: "Cosa ci sta nei due bagagli",
+          paragraphs: [
+            "La borsa gratuita da 40 × 30 × 20 cm è la stessa di Ryanair: circa 18–20 litri utili, abbastanza per 2–3 notti con abiti leggeri. Il trolley da 55 × 40 × 20 cm aggiunge circa 30–35 litri.",
+            `Ecco una settimana di vestiti, con volume e peso di ogni oggetto. Il planner consiglia ${kitRange(cabinWeekKit, 7)} : entra nel solo trolley, e la borsa sotto il sedile resta libera per laptop e beauty.`,
+          ],
+          table: kitTable(cabinWeekKit, 7, "it", true),
+          tip: "Il limite del trolley Vueling è 10 kg: un trolley rigido pesa già 2,5–3,5 kg a vuoto. Se sei vicino al limite, preferisci un modello leggero o un borsone.",
+        },
+        {
+          heading: "Quale bagaglio scegliere",
+          paragraphs: [
+            "Se viaggi solo con la borsa gratuita: uno zaino da 16–20 litri con misure esterne entro 40 × 30 × 20 cm, lo stesso che useresti con Ryanair o Wizz Air.",
+            "Se paghi il servizio 2 bagagli: un trolley o borsone da 55 × 40 × 20 cm, leggero, più uno zaino piccolo sotto il sedile.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Con Vueling la borsa sotto il sedile (40 × 30 × 20 cm) è sempre gratuita. Il trolley in cappelliera (55 × 40 × 20 cm, 10 kg) si paga. Occhio ai 20 cm di profondità: molti trolley “da cabina” sono da 23 cm e non passano.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "Vueling's official sizes",
+          paragraphs: [
+            "Every Vueling fare (Fly Light, Fly, Fly Grande and Fly Pro) includes a free under-seat bag. The second bag, for the overhead bin, comes with the paid “2 bags” service or with Space seats.",
+            "The rules from Vueling's official page, checked by us on 12 November 2026:",
+          ],
+          table: airlineRulesTable("vueling", "en", { personal: "Free on every fare", cabin: "2-bag service or Space seats" }),
+          tip: "Rules can change: always check your booking on Vueling's site.",
+        },
+        {
+          heading: "Watch out: Vueling's cabin bag is 20 cm deep, not 23",
+          paragraphs: [
+            "Most airlines accept 55 × 40 × 23 cm cabin bags, and most cabin trolleys are built to that size. Vueling asks for 20 cm of depth: 3 cm less, which a packed trolley easily exceeds.",
+            "If you fly Vueling often, look for a trolley with a stated depth of 20 cm (wheels included) or a soft duffel you can squeeze. A 20 cm depth works for every other airline too.",
+          ],
+        },
+        {
+          heading: "What fits in the two bags",
+          paragraphs: [
+            "The 40 × 30 × 20 cm free bag is the same as Ryanair's: about 18–20 usable liters, enough for 2–3 nights with light clothes. The 55 × 40 × 20 cm cabin bag adds about 30–35 liters.",
+            `Here's a week of clothes, with the volume and weight of every item. The planner suggests ${kitRange(cabinWeekKit, 7)} : it fits in the cabin bag alone, leaving the under-seat bag for your laptop and toiletries.`,
+          ],
+          table: kitTable(cabinWeekKit, 7, "en", true),
+          tip: "Vueling's cabin bag limit is 10 kg: a hard-shell trolley already weighs 2.5–3.5 kg empty. If you're close to the limit, pick a light model or a duffel.",
+        },
+        {
+          heading: "Which bag to choose",
+          paragraphs: [
+            "Travelling with the free bag only: a 16–20 liter backpack with an outer size within 40 × 30 × 20 cm, the same you'd use on Ryanair or Wizz Air.",
+            "Paying for the 2-bag service: a light 55 × 40 × 20 cm trolley or duffel, plus a small backpack under the seat.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "On Vueling the under-seat bag (40 × 30 × 20 cm) is always free. The overhead bag (55 × 40 × 20 cm, 10 kg) is paid. Mind the 20 cm depth: many “cabin” trolleys are 23 cm and won't pass.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks for Vueling's free bag", it: "Zaini per la borsa gratuita Vueling" },
+      intro: {
+        en: "16–20 L travel backpacks, checked against the 40×30×20 size when the maker states the dimensions.",
+        it: "Zaini da viaggio da 16–20 L, confrontati con le misure 40×30×20 quando il produttore le indica.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 16, max: 20 }, dimensionsCm: { height: 40, width: 30, depth: 20 } },
+    },
+    faq: {
+      it: [
+        { question: "Qual è la misura del bagaglio a mano gratuito Vueling?", answer: "40 × 30 × 20 cm, da mettere sotto il sedile davanti. È incluso in tutte le tariffe." },
+        { question: "Quanto misura il trolley Vueling in cappelliera?", answer: "55 × 40 × 20 cm e fino a 10 kg. Si aggiunge con il servizio 2 bagagli o è incluso con i posti Space." },
+        { question: "Un trolley 55×40×23 va bene per Vueling?", answer: "Sulla carta no: Vueling indica 20 cm di profondità. Se il trolley non entra nel misuratore, al gate può essere mandato in stiva a pagamento." },
+        { question: "Lo zaino Ryanair va bene per Vueling?", answer: "Sì: la borsa gratuita ha le stesse misure, 40 × 30 × 20 cm." },
+        { question: "Il trolley Vueling viene pesato?", answer: "Il limite è 10 kg e può essere controllato. Un trolley leggero ti lascia più margine per il contenuto." },
+      ],
+      en: [
+        { question: "What size is Vueling's free hand luggage?", answer: "40 × 30 × 20 cm, under the seat in front. It's included in every fare." },
+        { question: "What size is Vueling's overhead cabin bag?", answer: "55 × 40 × 20 cm and up to 10 kg. Add it with the 2-bag service, or get it with Space seats." },
+        { question: "Is a 55×40×23 trolley OK on Vueling?", answer: "On paper, no: Vueling states 20 cm of depth. If the trolley doesn't fit the sizer, it may go in the hold for a fee at the gate." },
+        { question: "Does a Ryanair backpack work on Vueling?", answer: "Yes: the free bag has the same size, 40 × 30 × 20 cm." },
+        { question: "Is the Vueling cabin bag weighed?", answer: "The limit is 10 kg and it can be checked. A light trolley leaves more room for what's inside." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose Vueling, the days and what you're bringing: we'll tell you which bag you need.", it: "Scegli Vueling, i giorni e cosa porti: ti diciamo quale bagaglio ti serve." },
+      href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "ita-airways-hand-luggage",
+    published: "2026-11-17",
+    updated: "2026-11-17",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "ITA Airways hand luggage: 55×40×23 cabin bag, 8 kg and personal item",
+      it: "Bagaglio a mano ITA Airways: trolley 55×40×23, 8 kg e accessorio personale",
+    },
+    description: {
+      en: "ITA Airways allows a 55×40×23 cm cabin bag up to 8 kg plus a 40×30×15 cm personal item. How to stay under 8 kg, what fits for a week and which bags to choose.",
+      it: "ITA Airways ammette un trolley 55×40×23 cm fino a 8 kg più un accessorio 40×30×15 cm. Come restare sotto gli 8 kg, cosa ci sta per una settimana e quali bagagli scegliere.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le misure ufficiali ITA Airways",
+          paragraphs: [
+            "In Economy ITA Airways prevede un bagaglio a mano in cappelliera e un accessorio personale sotto il sedile: una borsa, uno zaino piccolo o un porta laptop. Se il trolley sia incluso dipende dalla tariffa che compri.",
+            "Le regole dalla pagina ufficiale ITA Airways, verificate da noi il 12 novembre 2026:",
+          ],
+          table: airlineRulesTable("ita-airways", "it", { personal: "Incluso", cabin: "In base alla tariffa" }),
+          tip: "Con ITA le misure del trolley comprendono maniglie, tasche laterali e ruote. Alcune pagine meno recenti indicano 35 cm di larghezza invece di 40: controlla sempre la tua prenotazione.",
+        },
+        {
+          heading: "Il vero limite è il peso: 8 kg",
+          paragraphs: [
+            "La misura 55 × 40 × 23 cm è quella standard, quindi quasi ogni trolley da cabina va bene. Il punto critico sono gli 8 kg: un trolley rigido pesa 2,5–3,5 kg a vuoto e ti lascia solo 5 kg per il contenuto.",
+            "Un trolley morbido o un borsone da 1,5–2 kg cambia molto: guadagni 1–2 kg di vestiti. L'accessorio personale invece non ha un limite di peso indicato: lì vanno le cose pesanti come laptop e beauty.",
+          ],
+        },
+        {
+          heading: "Una settimana in cabina: volume e peso",
+          paragraphs: [
+            `Ecco una lista per sette giorni con volume e peso di ogni oggetto. In tutto pesa ${kilos(kitWeight(cabinWeekKit), "it")}, e il planner consiglia ${kitRange(cabinWeekKit, 7)} di spazio.`,
+          ],
+          table: kitTable(cabinWeekKit, 7, "it", true),
+          tip: `Con un trolley rigido da 3 kg arriveresti a circa ${kilos(kitWeight(cabinWeekKit) + 3, "it")}: troppo. Sposta beauty, caricatori e documenti nell'accessorio e indossa le sneakers in volo, e il trolley torna sotto gli 8 kg.`,
+        },
+        {
+          heading: "Come dividere tra trolley e accessorio",
+          list: [
+            "Nel trolley: vestiti, pigiama, scarpe leggere di ricambio.",
+            "Nell'accessorio (40 × 30 × 15 cm): laptop, beauty con i liquidi, caricatori, powerbank, documenti.",
+            "Addosso: scarpe più pesanti, giacca e maglione.",
+          ],
+          paragraphs: ["Così il trolley resta leggero e le cose che servono ai controlli di sicurezza sono già a portata di mano."],
+        },
+        {
+          heading: "Quale bagaglio scegliere",
+          paragraphs: [
+            "Per il trolley: un modello da 55 × 40 × 23 cm, ruote comprese, che pesi sotto i 2,5 kg. Per l'accessorio: uno zaino da 12–15 litri, profondo al massimo 15 cm, che sotto il sedile entra senza problemi.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Con ITA Airways porti un trolley da 55 × 40 × 23 cm fino a 8 kg (in base alla tariffa) più un accessorio da 40 × 30 × 15 cm. Le misure sono standard, il peso no: scegli un trolley leggero e metti le cose pesanti nell'accessorio.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "ITA Airways' official sizes",
+          paragraphs: [
+            "In Economy, ITA Airways allows a cabin bag for the overhead bin and a personal item under the seat: a handbag, small backpack or laptop bag. Whether the cabin bag is included depends on the fare you buy.",
+            "The rules from ITA Airways' official page, checked by us on 12 November 2026:",
+          ],
+          table: airlineRulesTable("ita-airways", "en", { personal: "Included", cabin: "Depends on the fare" }),
+          tip: "With ITA the cabin bag size includes handles, side pockets and wheels. A few older pages state a 35 cm width instead of 40: always check your booking.",
+        },
+        {
+          heading: "The real limit is weight: 8 kg",
+          paragraphs: [
+            "55 × 40 × 23 cm is the standard size, so almost any cabin trolley fits. The tricky part is 8 kg: a hard-shell trolley weighs 2.5–3.5 kg empty and leaves you only 5 kg for what's inside.",
+            "A soft trolley or duffel of 1.5–2 kg makes a big difference: you gain 1–2 kg of clothes. The personal item has no stated weight limit: that's where heavy things like your laptop and toiletries go.",
+          ],
+        },
+        {
+          heading: "A week in the cabin: volume and weight",
+          paragraphs: [
+            `Here's a 7-day list with the volume and weight of every item. It weighs ${kilos(kitWeight(cabinWeekKit), "en")} in all, and the planner suggests ${kitRange(cabinWeekKit, 7)} of space.`,
+          ],
+          table: kitTable(cabinWeekKit, 7, "en", true),
+          tip: `With a 3 kg hard-shell trolley you'd reach about ${kilos(kitWeight(cabinWeekKit) + 3, "en")}: too much. Move toiletries, chargers and documents to the personal item and wear the sneakers on the plane, and the trolley is back under 8 kg.`,
+        },
+        {
+          heading: "How to split between cabin bag and personal item",
+          list: [
+            "In the cabin bag: clothes, sleepwear, light spare shoes.",
+            "In the personal item (40 × 30 × 15 cm): laptop, toiletries with liquids, chargers, power bank, documents.",
+            "On you: your heaviest shoes, jacket and sweater.",
+          ],
+          paragraphs: ["The trolley stays light, and what you need at security is already at hand."],
+        },
+        {
+          heading: "Which bags to choose",
+          paragraphs: [
+            "For the cabin bag: a 55 × 40 × 23 cm model, wheels included, weighing under 2.5 kg. For the personal item: a 12–15 liter backpack, at most 15 cm deep, that slides under the seat easily.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "On ITA Airways you bring a 55 × 40 × 23 cm cabin bag up to 8 kg (depending on the fare) plus a 40 × 30 × 15 cm personal item. The size is standard, the weight isn't: pick a light trolley and put heavy things in the personal item.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Light cabin trolleys for ITA Airways", it: "Trolley leggeri per ITA Airways" },
+      intro: {
+        en: "Cabin trolleys within 55×40×23 cm when the maker states the dimensions. Lighter models rank higher, to stay under 8 kg.",
+        it: "Trolley da cabina entro 55×40×23 cm quando il produttore indica le misure. I modelli leggeri salgono in classifica, per restare sotto gli 8 kg.",
+      },
+      criteria: { productKind: "cabin-trolley", capacityRangeLiters: { min: 30, max: 40 }, dimensionsCm: { height: 55, width: 40, depth: 23 }, lightweight: true },
+    },
+    faq: {
+      it: [
+        { question: "Quali sono le misure del bagaglio a mano ITA Airways?", answer: "55 × 40 × 23 cm, maniglie, tasche e ruote comprese, con un peso massimo di 8 kg. In più un accessorio personale da 40 × 30 × 15 cm." },
+        { question: "Il bagaglio a mano è incluso in tutte le tariffe ITA?", answer: "Dipende dalla tariffa: controlla cosa include la tua al momento della prenotazione sul sito ITA Airways." },
+        { question: "L'accessorio personale ITA ha un limite di peso?", answer: "La fonte ufficiale che abbiamo controllato non indica un peso per l'accessorio, solo le misure: 40 × 30 × 15 cm." },
+        { question: "Come resto sotto gli 8 kg?", answer: "Scegli un trolley leggero (sotto 2,5 kg), metti laptop e beauty nell'accessorio e indossa in volo scarpe e giacca più pesanti." },
+        { question: "Uno zaino da 40×30×20 va bene come accessorio ITA?", answer: "È più profondo del limite di 15 cm. Se è morbido e non troppo pieno di solito passa, ma per stare tranquillo scegli uno zaino profondo al massimo 15 cm." },
+      ],
+      en: [
+        { question: "What size is ITA Airways hand luggage?", answer: "55 × 40 × 23 cm, handles, pockets and wheels included, up to 8 kg. Plus a 40 × 30 × 15 cm personal item." },
+        { question: "Is the cabin bag included in every ITA fare?", answer: "It depends on the fare: check what yours includes when booking on ITA Airways' site." },
+        { question: "Does the ITA personal item have a weight limit?", answer: "The official source we checked states no weight for the personal item, only the size: 40 × 30 × 15 cm." },
+        { question: "How do I stay under 8 kg?", answer: "Pick a light trolley (under 2.5 kg), put your laptop and toiletries in the personal item, and wear your heaviest shoes and jacket on the plane." },
+        { question: "Is a 40×30×20 backpack OK as an ITA personal item?", answer: "It's deeper than the 15 cm limit. A soft, not overstuffed one usually passes, but to be safe pick a backpack at most 15 cm deep." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose ITA Airways, the days and what you're bringing: we'll tell you if the cabin bag is enough.", it: "Scegli ITA Airways, i giorni e cosa porti: ti diciamo se il bagaglio a mano basta." },
+      href: "/luggage-configurator",
+    },
+  },
+  {
+    slug: "british-airways-cabin-bag-size",
+    published: "2026-11-17",
+    updated: "2026-11-17",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "British Airways cabin bag size and weight: 56×45×25 plus a free handbag",
+      it: "Bagaglio a mano British Airways: misure 56×45×25 e borsa extra inclusa",
+    },
+    description: {
+      en: "British Airways includes a 56×45×25 cm cabin bag and a 40×30×15 cm handbag or backpack on every fare. Weight, what fits for a week and which bags to choose.",
+      it: "British Airways include un bagaglio a mano da 56×45×25 cm e una borsa o zaino da 40×30×15 cm in tutte le tariffe. Peso, cosa ci sta per una settimana e quali bagagli scegliere.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le misure ufficiali British Airways",
+          paragraphs: [
+            "British Airways è tra le compagnie più generose in cabina: con ogni biglietto, anche il più economico, porti un bagaglio a mano in cappelliera e una borsa o uno zaino sotto il sedile.",
+            "Le regole dalla pagina ufficiale British Airways, verificate da noi il 12 novembre 2026:",
+          ],
+          table: airlineRulesTable("british-airways", "it", { personal: "Incluso", cabin: "Incluso" }),
+          tip: "Le misure del bagaglio a mano comprendono ruote e maniglie. Sui voli in codeshare operati da altre compagnie valgono le loro regole: controlla chi opera il volo.",
+        },
+        {
+          heading: "Quanto può pesare",
+          paragraphs: [
+            "British Airways è conosciuta per un limite molto alto: fino a 23 kg per bagaglio, a patto che tu riesca a sollevarlo da solo in cappelliera. La pagina che abbiamo controllato non riporta il peso, quindi verificalo nella tua prenotazione.",
+            "In pratica il limite vero è lo spazio, non il peso: un trolley pieno da 56 × 45 × 25 cm raramente supera i 12–14 kg.",
+          ],
+        },
+        {
+          heading: "Cosa ci sta: una settimana e oltre",
+          paragraphs: [
+            `Un trolley da 56 × 45 × 25 cm ha circa 40–45 litri utili, più dei soliti 55 × 40 × 23. Ecco una lista per sette giorni: il planner consiglia ${kitRange(cabinWeekKit, 7)}, quindi ci sta con margine, anche senza usare la borsa sotto il sedile.`,
+          ],
+          table: kitTable(cabinWeekKit, 7, "it", true),
+          tip: "Con la borsa extra da 40 × 30 × 15 cm (circa 12–15 litri) arrivi a 10–12 giorni con abiti leggeri, senza imbarcare nulla.",
+        },
+        {
+          heading: "Un trolley 55×40×23 va bene?",
+          paragraphs: [
+            "Sì: è più piccolo del limite BA, quindi entra senza problemi. Se però voli spesso con British Airways, un trolley fino a 56 × 45 × 25 cm sfrutta tutto lo spazio.",
+            "Attenzione: un trolley da 56 × 45 × 25 cm è troppo grande per molte altre compagnie, che accettano 55 × 40 × 23. Se voli anche low cost, il 55 × 40 × 23 resta la scelta più versatile.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "Sui voli pieni il trolley può finire in stiva",
+          paragraphs: [
+            "Sui voli molto pieni British Airways può chiedere di spostare in stiva alcuni bagagli a mano, gratis, al gate. Tieni sempre nella borsa sotto il sedile documenti, medicinali, laptop, powerbank e oggetti di valore.",
+          ],
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Con British Airways porti un bagaglio a mano da 56 × 45 × 25 cm e una borsa da 40 × 30 × 15 cm, inclusi in ogni tariffa. Lo spazio basta per una settimana e oltre; il peso raramente è un problema. Se voli anche con altre compagnie, un trolley 55 × 40 × 23 va bene ovunque.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "British Airways' official sizes",
+          paragraphs: [
+            "British Airways is one of the most generous airlines in the cabin: every ticket, even the cheapest, includes a cabin bag for the overhead bin and a handbag or backpack under the seat.",
+            "The rules from British Airways' official page, checked by us on 12 November 2026:",
+          ],
+          table: airlineRulesTable("british-airways", "en", { personal: "Included", cabin: "Included" }),
+          tip: "The cabin bag size includes wheels and handles. On codeshare flights operated by other airlines, their rules apply: check who operates your flight.",
+        },
+        {
+          heading: "How much it can weigh",
+          paragraphs: [
+            "British Airways is known for a very high limit: up to 23 kg per bag, as long as you can lift it into the overhead bin yourself. The page we checked doesn't state the weight, so confirm it in your booking.",
+            "In practice the real limit is space, not weight: a packed 56 × 45 × 25 cm trolley rarely goes over 12–14 kg.",
+          ],
+        },
+        {
+          heading: "What fits: a week and more",
+          paragraphs: [
+            `A 56 × 45 × 25 cm trolley holds about 40–45 usable liters, more than the usual 55 × 40 × 23. Here's a 7-day list: the planner suggests ${kitRange(cabinWeekKit, 7)}, so it fits with room to spare, even without the under-seat bag.`,
+          ],
+          table: kitTable(cabinWeekKit, 7, "en", true),
+          tip: "With the extra 40 × 30 × 15 cm bag (about 12–15 liters) you reach 10–12 days with light clothes, without checking anything.",
+        },
+        {
+          heading: "Is a 55×40×23 trolley OK?",
+          paragraphs: [
+            "Yes: it's smaller than BA's limit, so it fits easily. If you fly British Airways often, though, a trolley up to 56 × 45 × 25 cm uses all the space.",
+            "Careful: a 56 × 45 × 25 cm trolley is too big for many other airlines, which accept 55 × 40 × 23. If you also fly low cost, 55 × 40 × 23 stays the most versatile choice.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "On full flights the trolley may go in the hold",
+          paragraphs: [
+            "On very full flights British Airways may ask to move some cabin bags to the hold, free of charge, at the gate. Always keep documents, medicines, laptop, power bank and valuables in the under-seat bag.",
+          ],
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "On British Airways you bring a 56 × 45 × 25 cm cabin bag and a 40 × 30 × 15 cm handbag, included on every fare. The space holds a week and more; weight is rarely a problem. If you fly other airlines too, a 55 × 40 × 23 trolley works everywhere.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Cabin trolleys for British Airways", it: "Trolley da cabina per British Airways" },
+      intro: {
+        en: "Cabin trolleys within 55×40×23 cm when the maker states the dimensions: they fit British Airways and almost every other airline.",
+        it: "Trolley da cabina entro 55×40×23 cm quando il produttore indica le misure: vanno bene per British Airways e per quasi tutte le altre compagnie.",
+      },
+      criteria: { productKind: "cabin-trolley", capacityRangeLiters: { min: 35, max: 45 }, dimensionsCm: { height: 55, width: 40, depth: 23 } },
+    },
+    faq: {
+      it: [
+        { question: "Qual è la misura del bagaglio a mano British Airways?", answer: "56 × 45 × 25 cm, ruote e maniglie comprese, più una borsa o zaino da 40 × 30 × 15 cm sotto il sedile." },
+        { question: "Il bagaglio a mano è incluso anche nella tariffa base BA?", answer: "Sì: con British Airways bagaglio a mano e borsa sono inclusi in tutte le tariffe, anche quelle senza bagaglio da stiva." },
+        { question: "Quanto può pesare il bagaglio a mano British Airways?", answer: "BA è nota per un limite di 23 kg per bagaglio, purché tu lo sollevi da solo in cappelliera. Verificalo nella tua prenotazione." },
+        { question: "Un trolley 55×40×23 va bene per British Airways?", answer: "Sì, è più piccolo del limite di 56 × 45 × 25 cm." },
+        { question: "Il duty free conta nel bagaglio a mano?", answer: "Sì: gli acquisti duty free devono entrare nei due bagagli consentiti." },
+      ],
+      en: [
+        { question: "What is the British Airways cabin bag size?", answer: "56 × 45 × 25 cm, wheels and handles included, plus a 40 × 30 × 15 cm handbag or backpack under the seat." },
+        { question: "Is a cabin bag included on BA's basic fare?", answer: "Yes: on British Airways the cabin bag and handbag are included on every fare, even those without checked baggage." },
+        { question: "How much can a British Airways cabin bag weigh?", answer: "BA is known for a 23 kg limit per bag, as long as you can lift it into the overhead bin yourself. Confirm it in your booking." },
+        { question: "Is a 55×40×23 trolley OK for British Airways?", answer: "Yes, it's smaller than the 56 × 45 × 25 cm limit." },
+        { question: "Does duty free count towards hand luggage?", answer: "Yes: duty free purchases must fit in your two allowed bags." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose British Airways, the days and what you're bringing: we'll tell you if hand luggage is enough.", it: "Scegli British Airways, i giorni e cosa porti: ti diciamo se il bagaglio a mano basta." },
+      href: "/luggage-configurator",
     },
   },
 ];
