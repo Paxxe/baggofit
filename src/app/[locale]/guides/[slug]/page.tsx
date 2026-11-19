@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays, Clock, Lightbulb } from "lucide-react";
 import { notFound } from "next/navigation";
+import { GuideIllustration } from "@/components/guide-illustration";
 import { ProductMatches } from "@/components/product-matches";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -101,9 +102,10 @@ export default async function GuideDetail({ params }: { params: Promise<{ locale
           <h2>{section.heading}</h2>
           {section.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           {section.list && <ul>{section.list.map((item) => <li key={item}>{item}</li>)}</ul>}
+          {section.illustration && <GuideIllustration id={section.illustration} language={language} />}
           {section.table && <div className="guide-table"><table>
             <thead><tr>{section.table.head.map((cell) => <th key={cell} scope="col">{cell}</th>)}</tr></thead>
-            <tbody>{section.table.rows.map((row) => <tr key={row[0]}>{row.map((cell, index) => index === 0 ? <th key={cell} scope="row">{cell}</th> : <td key={cell}>{cell}</td>)}</tr>)}</tbody>
+            <tbody>{section.table.rows.map((row) => <tr key={row[0]}>{row.map((cell, index) => index === 0 ? <th key={index} scope="row">{cell}</th> : <td key={index}>{cell}</td>)}</tr>)}</tbody>
           </table></div>}
           {section.tip && <aside className="guide-tip"><Lightbulb size={18} /><p>{section.tip}</p></aside>}
           {section.productPicks && guide.products && <div className="guide-products">

@@ -2,6 +2,7 @@ import type { BackpackSearchCriteria } from "../products/provider";
 import { estimateBackpackCapacity } from "../calculators/backpack-capacity";
 import { airlines, getVerifiedPolicy } from "./airlines";
 import { packingItems } from "./packing-items";
+import { bagFit, cabinZeroModels, type BagFit } from "./cabinzero";
 
 type Lang = "en" | "it";
 
@@ -135,6 +136,39 @@ function kitSummaryTable(language: Lang) {
   };
 }
 
+/* ------------------------------------------------------------------ CabinZero sizes vs airlines (verified rules) */
+
+const fitLabel: Record<BagFit, Record<Lang, string>> = {
+  "under-seat": { it: "Sotto il sedile", en: "Under the seat" },
+  overhead: { it: "In cappelliera", en: "Overhead bin" },
+  "too-big": { it: "Troppo grande", en: "Too big" },
+  unknown: { it: "—", en: "—" },
+};
+
+function cabinZeroAirlineTable(language: Lang) {
+  return {
+    head: [language === "it" ? "Compagnia" : "Airline", ...cabinZeroModels.map((model) => `${model.liters} L`)],
+    rows: airlines.filter((airline) => getVerifiedPolicy(airline.id)).map((airline) => [airline.name, ...cabinZeroModels.map((model) => fitLabel[bagFit(model.size, airline.id)][language])]),
+  };
+}
+
+function cabinZeroModelTable(language: Lang) {
+  const it = language === "it";
+  const number = (value: number) => value.toLocaleString(it ? "it-IT" : "en-GB");
+  return {
+    head: it ? ["Modello", "Misure esterne", "Peso a vuoto", "Volume del parallelepipedo"] : ["Model", "Outer size", "Empty weight", "Box volume"],
+    rows: cabinZeroModels.map((model) => [
+      `Classic ${model.liters} L`,
+      `${number(model.size[0])} × ${number(model.size[1])} × ${model.size[2]} cm`,
+      `${number(model.weightG / 1000)} kg`,
+      liters((model.size[0] * model.size[1] * model.size[2]) / 1000, language),
+    ]),
+  };
+}
+
+const cz28Box = liters((39 * 29.5 * 20) / 1000, "it");
+const cz28BoxEn = liters((39 * 29.5 * 20) / 1000, "en");
+
 /* ------------------------------------------------------------------ cabin size table (from verified rules) */
 
 /** Airlines with a verified rule of this type, in the airlines list order. */
@@ -202,7 +236,11 @@ export interface GuideSection {
   tip?: string;
   /** Insert the live product picks right after this section. */
   productPicks?: boolean;
+  /** Cartoon figure shown after the section text (see components/guide-illustration). */
+  illustration?: GuideIllustrationId;
 }
+
+export type GuideIllustrationId = "sizer-40x30x20" | "packed-depth" | "cabinzero-sizes";
 
 export interface TravelGuide {
   slug: string;
@@ -2011,6 +2049,338 @@ export const guides: TravelGuide[] = [
       label: { en: "Check what fits", it: "Verifica cosa ci sta" },
       text: { en: "Choose British Airways, the days and what you're bringing: we'll tell you if hand luggage is enough.", it: "Scegli British Airways, i giorni e cosa porti: ti diciamo se il bagaglio a mano basta." },
       href: "/luggage-configurator",
+    },
+  },
+  {
+    slug: "best-ryanair-backpacks-40x30x20",
+    published: "2026-11-18",
+    updated: "2026-11-18",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "Best Ryanair backpacks 40×30×20: what to check before buying",
+      it: "Migliori zaini per Ryanair 40×30×20: cosa controllare prima di comprare",
+    },
+    description: {
+      en: "How to pick a backpack for Ryanair's free 40×30×20 bag: shape, depth when packed, empty weight and opening. A checklist, the bag types compared and real backpacks that fit.",
+      it: "Come scegliere lo zaino per la borsa gratuita Ryanair 40×30×20: forma, profondità da pieno, peso a vuoto e apertura. Checklist, tipi di zaino a confronto e zaini veri che rientrano.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le misure da rispettare",
+          paragraphs: [
+            "Con il biglietto base Ryanair porti gratis una sola borsa da mettere sotto il sedile davanti. Le regole dalla pagina ufficiale, verificate da noi il 12 novembre 2026:",
+          ],
+          table: airlineRulesTable("ryanair", "it", { personal: "Gratuita per tutti", cabin: "A pagamento (Priority e 2 bagagli a mano)" }),
+          illustration: "sizer-40x30x20",
+          tip: "Lo stesso zaino va bene anche per Wizz Air e Vueling (stesse misure) e per easyJet, che accetta fino a 45 × 36 × 20 cm.",
+        },
+        {
+          heading: "Conta la misura esterna, non i litri",
+          paragraphs: [
+            "I litri dichiarati dai produttori sono generosi e calcolati in modo diverso da marca a marca: uno zaino da \"28 L\" può entrare nel misuratore, uno da \"20 L\" con tasche sporgenti no. Guarda sempre le misure esterne indicate dal produttore.",
+            "Un parallelepipedo di 40 × 30 × 20 cm contiene 24 litri: è il massimo teorico. Nella pratica uno zaino che rientra davvero ha 18–22 litri utili.",
+          ],
+        },
+        {
+          heading: "Il punto debole: la profondità da pieno",
+          paragraphs: [
+            "Quasi tutti gli zaini respinti al gate sforano in profondità, non in altezza. Uno zaino morbido vuoto è profondo 18 cm; riempito fino all'orlo si gonfia e supera i 20 cm.",
+          ],
+          illustration: "packed-depth",
+          tip: "Prima di partire riempilo come in viaggio e misuralo appoggiato a un muro: se la profondità supera i 20 cm, togli qualcosa o indossalo.",
+        },
+        {
+          heading: "La checklist dello zaino giusto",
+          paragraphs: ["Prima di comprare, controlla questi punti:"],
+          table: {
+            head: ["Cosa", "Perché conta", "Da cercare"],
+            rows: [
+              ["Forma squadrata", "Sfrutta tutto il misuratore, angoli compresi", "Pareti dritte, fondo piatto"],
+              ["Profondità", "È la misura che sfora per prima", "20 cm dichiarati, meglio 18"],
+              ["Peso a vuoto", "Meno peso dello zaino, più spazio per te", "Sotto 1 kg, ideale 0,5–0,8 kg"],
+              ["Apertura a valigia", "Fai e disfi lo zaino come una valigia", "Zip su tre lati"],
+              ["Cinghie di compressione", "Tengono la profondità sotto controllo", "Interne o esterne"],
+              ["Tasca laptop", "Se lavori in viaggio", "Imbottita, verso la schiena"],
+              ["Niente tasche rigide sporgenti", "Aggiungono centimetri", "Tasche piatte o interne"],
+            ],
+          },
+        },
+        {
+          heading: "Tipi di zaino a confronto",
+          paragraphs: [],
+          table: {
+            head: ["Tipo", "Pro", "Contro"],
+            rows: [
+              ["Zaino da cabina ultraleggero (es. CabinZero)", "Leggero, squadrato, apertura a valigia", "Tessuto morbido: si gonfia se lo riempi troppo"],
+              ["Zaino porta PC 20 L", "Tasca imbottita, ordinato", "Spesso più pesante, poca capienza per i vestiti"],
+              ["Zaino da escursionismo 20 L", "Comodo da portare, robusto", "Forma a goccia: spreca spazio nel misuratore"],
+              ["Trolley sotto il sedile", "Si trascina", "Pesante a vuoto, meno spazio utile"],
+            ],
+          },
+          tip: "Un esempio di misure dichiarate: il CabinZero Classic 28L è 39 × 29,5 × 20 cm e pesa 600 g. Il nostro confronto tra le misure CabinZero è nella guida dedicata.",
+        },
+        {
+          heading: "Zaini che rientrano nelle misure",
+          paragraphs: [
+            "Qui sotto trovi zaini veri dai negozi, confrontati con le misure 40 × 30 × 20 quando il produttore le indica. Proponiamo anche zaini con più litri dichiarati, se le misure esterne rientrano.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Per Ryanair cerca uno zaino squadrato con misure esterne entro 40 × 30 × 20 cm, leggero (sotto 1 kg) e con apertura a valigia. Ignora i litri dichiarati, controlla la profondità da pieno e misuralo prima di partire.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "The sizes to respect",
+          paragraphs: [
+            "On a basic Ryanair fare you bring one free bag that goes under the seat in front. The rules from the official page, checked by us on 12 November 2026:",
+          ],
+          table: airlineRulesTable("ryanair", "en", { personal: "Free for everyone", cabin: "Paid (Priority & 2 cabin bags)" }),
+          illustration: "sizer-40x30x20",
+          tip: "The same backpack works for Wizz Air and Vueling (same size) and for easyJet, which allows up to 45 × 36 × 20 cm.",
+        },
+        {
+          heading: "Outer size counts, not liters",
+          paragraphs: [
+            "Makers' liters are generous and measured differently by each brand: a \"28 L\" backpack can fit the sizer, while a \"20 L\" one with bulging pockets doesn't. Always check the outer size the maker states.",
+            "A 40 × 30 × 20 cm box holds 24 liters: that's the theoretical maximum. In practice a bag that really fits has 18–22 usable liters.",
+          ],
+        },
+        {
+          heading: "The weak spot: depth when packed",
+          paragraphs: [
+            "Most bags turned away at the gate fail on depth, not height. A soft backpack is 18 cm deep empty; stuffed to the brim it bulges past 20 cm.",
+          ],
+          illustration: "packed-depth",
+          tip: "Before you go, pack it as for the trip and measure it against a wall: if it's deeper than 20 cm, take something out or wear it.",
+        },
+        {
+          heading: "The checklist for the right bag",
+          paragraphs: ["Before buying, check these points:"],
+          table: {
+            head: ["What", "Why it matters", "Look for"],
+            rows: [
+              ["Boxy shape", "Uses the whole sizer, corners included", "Straight sides, flat bottom"],
+              ["Depth", "It's the first measurement to fail", "20 cm stated, 18 is better"],
+              ["Empty weight", "Less bag weight, more room for you", "Under 1 kg, ideally 0.5–0.8 kg"],
+              ["Clamshell opening", "Pack and unpack it like a suitcase", "Zip on three sides"],
+              ["Compression straps", "Keep the depth in check", "Inside or outside"],
+              ["Laptop sleeve", "If you work while travelling", "Padded, against your back"],
+              ["No rigid bulging pockets", "They add centimetres", "Flat or internal pockets"],
+            ],
+          },
+        },
+        {
+          heading: "Bag types compared",
+          paragraphs: [],
+          table: {
+            head: ["Type", "Pros", "Cons"],
+            rows: [
+              ["Ultralight cabin backpack (e.g. CabinZero)", "Light, boxy, clamshell opening", "Soft fabric: bulges if overfilled"],
+              ["20 L laptop backpack", "Padded sleeve, tidy", "Often heavier, little room for clothes"],
+              ["20 L hiking daypack", "Comfortable, sturdy", "Teardrop shape: wastes space in the sizer"],
+              ["Under-seat trolley", "You can wheel it", "Heavy empty, less usable space"],
+            ],
+          },
+          tip: "An example of stated sizes: the CabinZero Classic 28L is 39 × 29.5 × 20 cm and weighs 600 g. Our comparison of CabinZero sizes is in its own guide.",
+        },
+        {
+          heading: "Backpacks that fit the size",
+          paragraphs: [
+            "Below are real backpacks from shops, checked against 40 × 30 × 20 when the maker states the size. We also show bags rated at more liters, as long as their outer size fits.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "For Ryanair, look for a boxy backpack with an outer size within 40 × 30 × 20 cm, light (under 1 kg) and with a clamshell opening. Ignore the stated liters, check the depth when packed and measure it before you go.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks for Ryanair's free bag", it: "Zaini per la borsa gratuita Ryanair" },
+      intro: {
+        en: "Travel backpacks checked against 40×30×20 cm when the maker states the size. Lighter bags rank higher.",
+        it: "Zaini da viaggio confrontati con 40×30×20 cm quando il produttore indica le misure. Gli zaini leggeri salgono in classifica.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 16, max: 22 }, dimensionsCm: { height: 40, width: 30, depth: 20 }, lightweight: true },
+    },
+    faq: {
+      it: [
+        { question: "Qual è il miglior zaino per Ryanair?", answer: "Quello con misure esterne entro 40 × 30 × 20 cm, forma squadrata, peso sotto 1 kg e apertura a valigia. Più dei litri o della marca conta che rientri nel misuratore anche pieno." },
+        { question: "Uno zaino da 28 litri va bene per Ryanair?", answer: "Sì, se le misure esterne rientrano in 40 × 30 × 20 cm: per esempio il CabinZero Classic 28L dichiara 39 × 29,5 × 20 cm. Attenzione a non riempirlo troppo: la profondità aumenta." },
+        { question: "Ryanair controlla davvero le misure dello zaino?", answer: "Al gate il personale può chiederti di metterlo nel misuratore. Se non entra, paghi il supplemento per spostarlo in stiva." },
+        { question: "Le ruote e le maniglie contano?", answer: "Sì: per Ryanair la misura comprende tutto, maniglie, ruote e tasche esterne." },
+        { question: "Meglio zaino o borsa morbida?", answer: "Lo zaino è più comodo da portare; una borsa morbida si adatta meglio al misuratore. Conta soprattutto che sia squadrata e non troppo piena." },
+      ],
+      en: [
+        { question: "What's the best backpack for Ryanair?", answer: "One with an outer size within 40 × 30 × 20 cm, a boxy shape, under 1 kg and a clamshell opening. Fitting the sizer when packed matters more than liters or brand." },
+        { question: "Is a 28 liter backpack OK for Ryanair?", answer: "Yes, if its outer size is within 40 × 30 × 20 cm: for example the CabinZero Classic 28L states 39 × 29.5 × 20 cm. Don't overfill it: the depth grows." },
+        { question: "Does Ryanair really check backpack size?", answer: "At the gate staff may ask you to put it in the sizer. If it doesn't fit, you pay a fee to move it to the hold." },
+        { question: "Do wheels and handles count?", answer: "Yes: for Ryanair the size includes everything, handles, wheels and outside pockets." },
+        { question: "Backpack or soft bag?", answer: "A backpack is more comfortable to carry; a soft bag adapts better to the sizer. What matters most is a boxy shape and not overfilling it." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose Ryanair, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli Ryanair, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
+      href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "cabinzero-28l-36l-44l-which-size",
+    published: "2026-11-19",
+    updated: "2026-11-19",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "CabinZero 28L, 36L or 44L: which size for which airline",
+      it: "CabinZero 28L, 36L o 44L: quale scegliere per ogni compagnia",
+    },
+    description: {
+      en: `The three CabinZero Classic sizes compared with the cabin rules of ${airlineCount} airlines: which one goes free under the seat, which needs the overhead bin, and why the liters can mislead.`,
+      it: `Le tre misure CabinZero Classic confrontate con le regole di ${airlineCount} compagnie: quale va gratis sotto il sedile, quale serve in cappelliera e perché i litri possono ingannare.`,
+    },
+    sections: {
+      it: [
+        {
+          heading: "Le tre misure in breve",
+          paragraphs: [
+            "CabinZero Classic esiste in tre taglie. Queste sono le misure e i pesi indicati sul sito del produttore, controllati il 19 novembre 2026:",
+          ],
+          table: cabinZeroModelTable("it"),
+          illustration: "cabinzero-sizes",
+          tip: "Per il 44L il sito indica due misure diverse (51 × 36 × 18 e 51 × 37 × 20 cm): nei confronti usiamo la più grande, per stare sul sicuro.",
+        },
+        {
+          heading: "Quale CabinZero per quale compagnia",
+          paragraphs: [
+            "Abbiamo confrontato le misure di ogni modello con le regole ufficiali che abbiamo verificato per ogni compagnia. \"Sotto il sedile\" è la borsa inclusa nel biglietto; \"In cappelliera\" è il bagaglio a mano grande, che con le low cost spesso si paga.",
+          ],
+          table: cabinZeroAirlineTable("it"),
+          tip: "Le regole cambiano e dipendono dalla tariffa: controlla sempre la tua prenotazione.",
+        },
+        {
+          heading: "28L: lo zaino delle low cost",
+          paragraphs: [
+            "Con 39 × 29,5 × 20 cm il Classic 28L rientra nella borsa gratuita di Ryanair, Wizz Air, Vueling ed easyJet. È la scelta per chi vola con il biglietto base.",
+            `Attenzione ai litri: il parallelepipedo esterno fa circa ${cz28Box}. I 28 L dichiarati si raggiungono solo riempiendolo molto, e a quel punto la profondità supera facilmente i 20 cm.`,
+          ],
+        },
+        {
+          heading: "36L: su misura per easyJet",
+          paragraphs: [
+            "Il 36L (45 × 31 × 20 cm) è pensato per la borsa gratuita easyJet, che arriva a 45 × 36 × 20 cm; rientra anche nell'oggetto personale di American Airlines. Per Ryanair, Wizz Air e Vueling invece è troppo alto: diventa un bagaglio in cappelliera a pagamento.",
+          ],
+        },
+        {
+          heading: "44L: quando paghi il bagaglio a mano",
+          paragraphs: [
+            "Il 44L ha le dimensioni di un trolley da cabina: entra in cappelliera con quasi tutte le compagnie, ma non è mai una borsa gratuita sotto il sedile. Ha senso se compri il bagaglio a mano o voli con una compagnia che lo include.",
+            "Le eccezioni nelle regole che abbiamo verificato sono le compagnie con bagagli a mano più stretti: Air France, KLM e Delta accettano al massimo 35 cm di larghezza, American Airlines 36 cm, e il 44L ne misura 36–37. Ricorda anche i limiti di peso, 8–10 kg per molte compagnie.",
+          ],
+        },
+        {
+          heading: "Dove comprarlo",
+          paragraphs: [
+            "CabinZero si trova sul sito ufficiale e da diversi negozi di valigeria. Qui sotto i prodotti CabinZero dal catalogo dei negozi, con i prezzi aggiornati.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "Voli low cost con il biglietto base: 28L. Voli soprattutto easyJet: 36L. Paghi o hai incluso il bagaglio a mano: 44L, ma non con Air France, KLM, Delta e American Airlines, che vogliono bagagli più stretti. In tutti i casi misura lo zaino pieno.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "The three sizes at a glance",
+          paragraphs: [
+            "CabinZero Classic comes in three sizes. These are the sizes and weights stated on the maker's site, checked on 19 November 2026:",
+          ],
+          table: cabinZeroModelTable("en"),
+          illustration: "cabinzero-sizes",
+          tip: "For the 44L the site lists two different sizes (51 × 36 × 18 and 51 × 37 × 20 cm): we compare using the larger one, to be safe.",
+        },
+        {
+          heading: "Which CabinZero for which airline",
+          paragraphs: [
+            "We compared each model's size with the official rules we verified for each airline. \"Under the seat\" is the bag included in the ticket; \"Overhead bin\" is the big cabin bag, which low-cost airlines often charge for.",
+          ],
+          table: cabinZeroAirlineTable("en"),
+          tip: "Rules change and depend on your fare: always check your booking.",
+        },
+        {
+          heading: "28L: the low-cost backpack",
+          paragraphs: [
+            "At 39 × 29.5 × 20 cm the Classic 28L fits the free bag of Ryanair, Wizz Air, Vueling and easyJet. It's the pick for basic fares.",
+            `Mind the liters: the outer box is about ${cz28BoxEn}. You only reach the stated 28 L by stuffing it, and then the depth easily goes past 20 cm.`,
+          ],
+        },
+        {
+          heading: "36L: made for easyJet",
+          paragraphs: [
+            "The 36L (45 × 31 × 20 cm) is designed for easyJet's free bag, which allows up to 45 × 36 × 20 cm; it also fits American Airlines' personal item. For Ryanair, Wizz Air and Vueling it's too tall: it becomes a paid overhead bag.",
+          ],
+        },
+        {
+          heading: "44L: when you pay for a cabin bag",
+          paragraphs: [
+            "The 44L is cabin-trolley size: it goes in the overhead bin with almost every airline, but it's never a free under-seat bag. It makes sense if you buy a cabin bag or fly an airline that includes one.",
+            "The exceptions in the rules we verified are airlines with narrower cabin bags: Air France, KLM and Delta allow at most 35 cm of width, American Airlines 36 cm, and the 44L is 36–37 cm. Also mind the weight limits, 8–10 kg for many airlines.",
+          ],
+        },
+        {
+          heading: "Where to buy",
+          paragraphs: [
+            "CabinZero sells on its official site and through several luggage shops. Below are CabinZero products from shop catalogs, with current prices.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "Low-cost basic fares: 28L. Mostly easyJet: 36L. Paying for or included cabin bag: 44L, but not with Air France, KLM, Delta and American Airlines, which want narrower bags. In every case, measure the bag packed.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "CabinZero backpacks in shops", it: "Zaini CabinZero nei negozi" },
+      intro: {
+        en: "CabinZero backpacks from the official store and luggage shops, closest to the size you need.",
+        it: "Zaini CabinZero dal negozio ufficiale e dalle valigerie, i più vicini alla misura che ti serve.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 26, max: 46 }, text: "CabinZero" },
+    },
+    faq: {
+      it: [
+        { question: "Il CabinZero 28L va bene per Ryanair?", answer: "Sì: misura 39 × 29,5 × 20 cm e rientra nella borsa gratuita Ryanair da 40 × 30 × 20 cm. Non riempirlo troppo, o la profondità supera i 20 cm." },
+        { question: "Il CabinZero 36L va bene per easyJet?", answer: "Sì: con 45 × 31 × 20 cm rientra nella borsa gratuita easyJet da 45 × 36 × 20 cm." },
+        { question: "Il CabinZero 44L si può portare gratis?", answer: "Non come borsa sotto il sedile: ha le misure di un trolley da cabina. Va in cappelliera, che con le low cost di solito si paga." },
+        { question: "Quanto pesa uno zaino CabinZero?", answer: "Secondo il produttore: 600 g il 28L, 700 g il 36L, 760 g il 44L." },
+        { question: "Perché il 28L sembra più piccolo di 28 litri?", answer: `Il parallelepipedo esterno di 39 × 29,5 × 20 cm fa circa ${cz28Box}: i litri dichiarati contano il tessuto riempito al massimo.` },
+      ],
+      en: [
+        { question: "Is the CabinZero 28L OK for Ryanair?", answer: "Yes: it measures 39 × 29.5 × 20 cm and fits Ryanair's free 40 × 30 × 20 cm bag. Don't overfill it, or the depth goes past 20 cm." },
+        { question: "Is the CabinZero 36L OK for easyJet?", answer: "Yes: at 45 × 31 × 20 cm it fits easyJet's free 45 × 36 × 20 cm bag." },
+        { question: "Can I bring the CabinZero 44L for free?", answer: "Not as an under-seat bag: it's cabin-trolley size. It goes in the overhead bin, which low-cost airlines usually charge for." },
+        { question: "How much does a CabinZero backpack weigh?", answer: "According to the maker: 600 g for the 28L, 700 g for the 36L, 760 g for the 44L." },
+        { question: "Why does the 28L look smaller than 28 liters?", answer: `The 39 × 29.5 × 20 cm outer box is about ${cz28BoxEn}: the stated liters count the fabric filled to the maximum.` },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
+      text: { en: "Choose your airline, the days and what you're bringing: we'll tell you which size you need.", it: "Scegli la compagnia, i giorni e cosa porti: ti diciamo quale misura ti serve." },
+      href: "/backpack-configurator",
     },
   },
 ];

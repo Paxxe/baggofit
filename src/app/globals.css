@@ -686,6 +686,21 @@ h1, h2, h3 { letter-spacing: -0.015em; }
 .guide-tip { display: flex; gap: 12px; margin: 18px 0; padding: 16px 18px; border: 2px solid var(--ink); border-radius: 18px; background: var(--cobalt-soft); }
 .guide-tip svg { flex: none; margin-top: 4px; color: var(--cobalt); }
 .guide-tip p { margin: 0 !important; font-size: 16px !important; font-weight: 600; color: var(--ink) !important; }
+.guide-figure { margin: 24px 0 12px; }
+.guide-figure-art { padding: 18px 18px 6px; border: 2px solid var(--ink); border-radius: 20px; background: radial-gradient(circle at 18% 12%, var(--sun-soft), transparent 55%), var(--card); box-shadow: var(--shadow); }
+.guide-figure-art svg { display: block; width: 100%; height: auto; }
+.guide-figure figcaption { margin-top: 12px; font-size: 14px; line-height: 1.55; color: var(--muted); text-align: center; }
+.guide-figure .figure-label { font: 800 20px var(--font-body); fill: var(--ink); }
+.guide-figure .figure-heading { font: 900 30px var(--font-body); fill: var(--ink); }
+.guide-figure .figure-note { font: 700 16px var(--font-body); fill: var(--muted); }
+.guide-figure .figure-badge { font: 800 19px var(--font-body); fill: #fff; }
+.guide-figure-legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.guide-figure-legend > div { padding: 14px; border: 2px solid var(--ink); border-radius: 16px; background: var(--card); box-shadow: var(--shadow-sm); }
+.guide-figure-legend strong { display: block; margin-bottom: 6px; font-size: 18px; }
+.guide-figure-legend p { margin: 6px 0 0 !important; font-size: 13px !important; line-height: 1.5; color: var(--ink) !important; }
+.legend-chip { display: inline-block; margin: 0 6px 2px 0; padding: 1px 8px; border: 2px solid var(--ink); border-radius: 999px; background: var(--cobalt-soft); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.legend-chip.is-free { background: #c9f3d9; }
+@media (max-width: 680px) { .guide-figure-legend { grid-template-columns: 1fr; } .guide-figure-art { padding: 10px 8px 2px; } }
 .guide-products { margin: 26px 0 10px; }
 .guide-products .product-matches h3 { margin: 0 0 3px; font-size: 22px; }
 .guide-faq { margin-top: 40px; }
