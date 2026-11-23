@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Backpack, Gift, Laptop, ListChecks, Luggage, Mountain, Plane, Ruler, type LucideIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -8,6 +8,18 @@ import { guidesNewestFirst } from "@/lib/data/guides";
 import { getMessages, locales } from "@/lib/i18n";
 
 export const instant = false;
+
+/** Sticker icons on about half of the cards, to break up the grid (colour = sticker background). */
+const cardIcons: Record<string, { icon: LucideIcon; tone: "sun" | "cobalt" | "tomato" | "white" }> = {
+  "christmas-hand-luggage-only": { icon: Gift, tone: "tomato" },
+  "british-airways-cabin-bag-size": { icon: Plane, tone: "cobalt" },
+  "ita-airways-hand-luggage": { icon: Luggage, tone: "sun" },
+  "easyjet-backpack-45x36x20": { icon: Backpack, tone: "tomato" },
+  "ryanair-backpack-3-days-packing-list": { icon: ListChecks, tone: "white" },
+  "best-office-backpacks": { icon: Laptop, tone: "cobalt" },
+  "ryanair-backpack-40x30x20": { icon: Ruler, tone: "sun" },
+  "trekking-backpack-guide": { icon: Mountain, tone: "white" },
+};
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -21,5 +33,9 @@ export default async function GuideDirectory({ params }: { params: Promise<{ loc
   const messages = getMessages(locale);
   const language = locale as "en" | "it";
   const italian = language === "it";
-  return <><SiteHeader locale={language} messages={messages} /><main className="content-page"><p className="eyebrow"><span className="eyebrow-line" />{italian ? "VIAGGIA CON CRITERIO" : "TRAVEL WITH INTENTION"}</p><h1>{italian ? "Guide essenziali per fare la valigia." : "Essential guides for packing well."}</h1><p className="content-lede">{italian ? "Informazioni pratiche per scegliere lo zaino e controllare il bagaglio prima di partire." : "Practical information for choosing a backpack and checking your baggage before you go."}</p><div className="guide-list">{guidesNewestFirst().map((guide) => <article className="guide-card" key={guide.slug}>{guide.category && <span className="guide-card-meta">{guide.category[language]}</span>}<h2>{guide.title[language]}</h2><p>{guide.description[language]}</p><Link href={`/${locale}/guides/${guide.slug}`}>{italian ? "Leggi la guida" : "Read guide"}<ArrowRight size={14} /></Link></article>)}</div></main><SiteFooter locale={language} messages={messages} /></>;
+  return <><SiteHeader locale={language} messages={messages} /><main className="content-page"><p className="eyebrow"><span className="eyebrow-line" />{italian ? "VIAGGIA CON CRITERIO" : "TRAVEL WITH INTENTION"}</p><h1>{italian ? "Guide essenziali per fare la valigia." : "Essential guides for packing well."}</h1><p className="content-lede">{italian ? "Informazioni pratiche per scegliere lo zaino e controllare il bagaglio prima di partire." : "Practical information for choosing a backpack and checking your baggage before you go."}</p><div className="guide-list">{guidesNewestFirst().map((guide) => {
+    const sticker = cardIcons[guide.slug];
+    const Icon = sticker?.icon;
+    return <article className={sticker ? "guide-card has-icon" : "guide-card"} key={guide.slug}>{Icon && <span className={`guide-card-icon tone-${sticker.tone}`} aria-hidden="true"><Icon size={24} strokeWidth={2.4} /></span>}{guide.category && <span className="guide-card-meta">{guide.category[language]}</span>}<h2>{guide.title[language]}</h2><p>{guide.description[language]}</p><Link href={`/${locale}/guides/${guide.slug}`}>{italian ? "Leggi la guida" : "Read guide"}<ArrowRight size={14} /></Link></article>;
+  })}</div></main><SiteFooter locale={language} messages={messages} /></>;
 }

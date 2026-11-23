@@ -714,6 +714,12 @@ h1, h2, h3 { letter-spacing: -0.015em; }
 .guide-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 40px; padding: 22px 24px; border: 2px solid var(--ink); border-radius: 22px; background: var(--tomato); color: #fff; box-shadow: var(--shadow); }
 .guide-cta p { margin: 0 !important; color: #fff !important; font-size: 18px !important; font-weight: 700; max-width: 440px; }
 .guide-cta .button { background: var(--sun); color: var(--ink); }
+.guide-card-icon { position: absolute; top: 18px; right: 18px; display: grid; place-items: center; width: 50px; height: 50px; border: 2px solid var(--ink); border-radius: 50%; background: var(--white); color: var(--ink); box-shadow: var(--shadow-sm); transform: rotate(8deg); transition: transform 0.18s ease; }
+.guide-card-icon.tone-sun { background: var(--sun); }
+.guide-card-icon.tone-cobalt { background: var(--cobalt); color: var(--white); }
+.guide-card-icon.tone-tomato { background: var(--tomato); color: var(--white); }
+.guide-card:hover .guide-card-icon { transform: rotate(-8deg) scale(1.06); }
+.guide-card.has-icon h2 { padding-right: 52px; }
 .guide-card-meta { display: inline-flex; margin-bottom: 10px; padding: 2px 10px; border: 2px solid var(--ink); border-radius: 99px; background: #fff; font-size: 12px; font-weight: 750; }
 @media (max-width: 680px) { .guide-table table { font-size: 14px; } .guide-cta { padding: 18px; } }
 .guide-article > section > ul { list-style-type: disc; list-style-position: outside; padding-left: 24px; margin: 8px 0 16px; }
