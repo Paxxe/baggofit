@@ -169,6 +169,84 @@ function cabinZeroModelTable(language: Lang) {
 const cz28Box = liters((39 * 29.5 * 20) / 1000, "it");
 const cz28BoxEn = liters((39 * 29.5 * 20) / 1000, "en");
 
+/* ------------------------------------------------------------------ Christmas with hand luggage only */
+
+/** 4 days with family in the free under-seat bag: coat, boots and the thick sweater are worn on the plane. */
+const christmasFreeBagKit: Kit = [
+  ["t-shirt", 3], ["sweater", 1], ["trousers", 1], ["underwear", 4], ["socks", 4],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
+];
+/** 5 days including the Christmas dinner outfit, in a 55×40×20 cabin trolley. */
+const christmasCabinKit: Kit = [
+  ["t-shirt", 4], ["shirt", 1], ["sweater", 2], ["trousers", 2], ["underwear", 5], ["socks", 5], ["formal-shoes", 1],
+  ["toiletries", 1], ["chargers", 1], ["power-bank", 1], ["documents", 1], ["accessories", 1],
+];
+/** Worn on the plane instead of packed (shown in the "winter-wear" illustration). */
+export const christmasWornItems = ["jacket", "boots", "sweater"] as const;
+const christmasPackedCoatKit: Kit = [...christmasFreeBagKit, ["jacket", 1], ["boots", 1]];
+
+/** Usable liters assumed per bag: the low end of the ranges used in the other guides (18–20 L and 30–35 L). */
+const FREE_BAG_LITERS = 18;
+const CABIN_TROLLEY_LITERS = 30;
+/** Empty weight of a typical hard-shell cabin trolley (the guides quote 2.5–3.5 kg). */
+const TROLLEY_EMPTY_KG = 3;
+const ryanairCabinKg = getVerifiedPolicy("ryanair")?.rules["cabin-bag"]?.maxWeightKg ?? 10;
+
+/** Space the planner asks for: items + per-day buffer + minimalist margin. */
+const neededLiters = (kit: Kit, days: number) => kitEstimate(kit, days).estimate.recommendedUsableCapacityLiters;
+const roomLeft = (kit: Kit, days: number, capacity: number) => Math.round((capacity - neededLiters(kit, days)) * 10) / 10;
+const christmasGiftRoom = roomLeft(christmasFreeBagKit, 4, FREE_BAG_LITERS);
+const christmasTrolleyRoom = roomLeft(christmasCabinKit, 5, CABIN_TROLLEY_LITERS);
+const christmasCabinKg = kitWeight(christmasCabinKit);
+const christmasGiftKg = Math.round((ryanairCabinKg - TROLLEY_EMPTY_KG - christmasCabinKg) * 10) / 10;
+const christmasWornLiters = christmasWornItems.reduce((total, id) => total + (packingItems.find((item) => item.id === id)?.volumeLiters ?? 0), 0);
+
+function christmasScenarioTable(language: Lang) {
+  const it = language === "it";
+  const freeBag = it ? `Borsa gratuita (~${FREE_BAG_LITERS} L)` : `Free bag (~${FREE_BAG_LITERS} L)`;
+  const trolley = it ? `Trolley 55×40×20 (~${CABIN_TROLLEY_LITERS} L)` : `55×40×20 trolley (~${CABIN_TROLLEY_LITERS} L)`;
+  const scenarios: [Record<Lang, string>, string, Kit, number, number][] = [
+    [{ it: "4 giorni, cappotto e stivali addosso", en: "4 days, coat and boots worn" }, freeBag, christmasFreeBagKit, 4, FREE_BAG_LITERS],
+    [{ it: "4 giorni, cappotto e stivali nello zaino", en: "4 days, coat and boots packed" }, freeBag, christmasPackedCoatKit, 4, FREE_BAG_LITERS],
+    [{ it: "5 giorni con la cena di Natale", en: "5 days with Christmas dinner" }, freeBag, christmasCabinKit, 5, FREE_BAG_LITERS],
+    [{ it: "5 giorni con la cena di Natale", en: "5 days with Christmas dinner" }, trolley, christmasCabinKit, 5, CABIN_TROLLEY_LITERS],
+  ];
+  return {
+    head: it ? ["Viaggio", "Bagaglio", "Spazio che serve", "Spazio per i regali"] : ["Trip", "Bag", "Space needed", "Room for gifts"],
+    rows: scenarios.map(([name, bag, kit, days, capacity]) => {
+      const left = roomLeft(kit, days, capacity);
+      return [
+        name[language],
+        bag,
+        liters(neededLiters(kit, days), language),
+        left > 0 ? `${it ? "circa" : "about"} ${liters(left, language)}` : it ? `Non ci sta (mancano ${liters(-left, language)})` : `Doesn't fit (${liters(-left, language)} short)`,
+      ];
+    }),
+  };
+}
+
+export type ChristmasLayer = { key: "clothes" | "electronics" | "toiletries" | "margin" | "gifts"; liters: number };
+
+/** How the free bag fills up for the 4-day Christmas kit, bottom to top (for the "christmas-fill" illustration). */
+export function christmasFreeBagLayers(): { capacity: number; layers: ChristmasLayer[] } {
+  const { items, estimate } = kitEstimate(christmasFreeBagKit, 4);
+  const sum = (test: (id: string, category: string) => boolean) =>
+    items.filter(({ item }) => test(item.id, item.category)).reduce((total, { item, quantity }) => total + item.volumeLiters * quantity, 0);
+  const clothes = sum((_, category) => ["clothing", "footwear"].includes(category));
+  const toiletries = sum((id) => id === "toiletries");
+  const electronics = estimate.estimatedPackedVolumeLiters - clothes - toiletries;
+  return {
+    capacity: FREE_BAG_LITERS,
+    layers: [
+      { key: "clothes", liters: clothes },
+      { key: "electronics", liters: electronics },
+      { key: "toiletries", liters: toiletries },
+      { key: "margin", liters: estimate.recommendedUsableCapacityLiters - estimate.estimatedPackedVolumeLiters },
+      { key: "gifts", liters: christmasGiftRoom },
+    ],
+  };
+}
+
 /* ------------------------------------------------------------------ cabin size table (from verified rules) */
 
 /** Airlines with a verified rule of this type, in the airlines list order. */
@@ -240,7 +318,7 @@ export interface GuideSection {
   illustration?: GuideIllustrationId;
 }
 
-export type GuideIllustrationId = "sizer-40x30x20" | "packed-depth" | "cabinzero-sizes";
+export type GuideIllustrationId = "sizer-40x30x20" | "packed-depth" | "cabinzero-sizes" | "christmas-fill" | "winter-wear";
 
 export interface TravelGuide {
   slug: string;
@@ -2380,6 +2458,225 @@ export const guides: TravelGuide[] = [
     cta: {
       label: { en: "Check what fits", it: "Verifica cosa ci sta" },
       text: { en: "Choose your airline, the days and what you're bringing: we'll tell you which size you need.", it: "Scegli la compagnia, i giorni e cosa porti: ti diciamo quale misura ti serve." },
+      href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "christmas-hand-luggage-only",
+    published: "2026-11-23",
+    updated: "2026-11-23",
+    category: { en: "Packing", it: "Come fare lo zaino" },
+    title: {
+      en: "Christmas with hand luggage only: what to pack (and where the gifts go)",
+      it: "Natale con solo bagaglio a mano: cosa portare (e dove mettere i regali)",
+    },
+    description: {
+      en: "Winter packing lists for a Christmas trip in the free 40×30×20 bag or a 55×40×20 trolley, how much room is left for gifts, what to wear on the plane and which food gifts count as liquids.",
+      it: "Le liste invernali per un viaggio di Natale nella borsa gratuita 40×30×20 o nel trolley 55×40×20, quanto spazio resta per i regali, cosa indossare in volo e quali regali alimentari contano come liquidi.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "La risposta breve: sì, ma i regali cambiano i conti",
+          paragraphs: [
+            `Quattro giorni d'inverno stanno nella borsa gratuita da 40 × 30 × 20 cm, a patto di indossare in volo cappotto, stivali e maglione pesante. Con la lista qui sotto restano circa ${liters(christmasGiftRoom, "it")} per i regali: abbastanza per qualche pacchetto piccolo, non per un panettone.`,
+            "Se resti cinque giorni e ti serve un vestito per la cena di Natale, la borsa gratuita non basta più: serve il trolley da 55 × 40 × 20 cm. E lì il limite diventa il peso, non lo spazio.",
+            "Tutti i volumi vengono dal nostro configuratore, gli stessi che usiamo nelle altre liste.",
+          ],
+        },
+        {
+          heading: "Le misure da rispettare",
+          paragraphs: [
+            "Prendiamo Ryanair come riferimento: la borsa gratuita da 40 × 30 × 20 cm è la stessa di Wizz Air e Vueling, mentre easyJet concede 45 × 36 × 20 cm. Il trolley in cappelliera si paga quasi sempre a parte.",
+          ],
+          table: airlineRulesTable("ryanair", "it", { personal: "Inclusa", cabin: "A pagamento (Priority e 2 bagagli a mano)" }),
+          tip: "A dicembre i voli sono pieni e i trolley a pagamento finiscono presto: se ti serve, aggiungilo quando prenoti, costa meno che al gate.",
+        },
+        {
+          heading: "La lista per 4 giorni nella borsa gratuita",
+          paragraphs: [
+            "Pensata per Natale in famiglia, dal 23 al 26 dicembre: in volo indossi cappotto, stivali, jeans e il maglione più spesso. Nello zaino:",
+          ],
+          table: kitTable(christmasFreeBagKit, 4, "it"),
+          illustration: "christmas-fill",
+        },
+        {
+          heading: "Cosa indossare in volo",
+          paragraphs: [
+            `Quello che hai addosso non conta nelle misure. In inverno è il trucco più importante: cappotto, stivali e maglione occupano insieme circa ${liters(christmasWornLiters, "it")}, più di un terzo della borsa gratuita.`,
+          ],
+          illustration: "winter-wear",
+          list: [
+            "Il cappotto o il piumino: lo togli e lo pieghi sulle ginocchia una volta seduto.",
+            "Gli stivali o le scarpe più pesanti: mai nello zaino.",
+            "Il maglione più spesso, sopra una maglietta: in aereo puoi toglierlo.",
+            "Sciarpa, berretto e guanti nelle tasche del cappotto.",
+            "Jeans o pantaloni pesanti addosso, quelli leggeri nello zaino.",
+          ],
+        },
+        {
+          heading: "Quanto spazio resta per i regali",
+          paragraphs: [
+            "Il configuratore aggiunge ai vestiti un margine per i giorni di viaggio e per gli spazi vuoti. Quello che avanza è lo spazio per i regali. Ecco quattro casi:",
+          ],
+          table: christmasScenarioTable("it"),
+          tip: "Se cappotto e stivali finiscono nello zaino, lo spazio per i regali sparisce del tutto. È l'errore che fa pagare più supplementi al gate a dicembre.",
+        },
+        {
+          heading: "5 giorni con la cena di Natale: serve il trolley",
+          paragraphs: [
+            `Una camicia, scarpe eleganti e un secondo maglione fanno la differenza: la lista per cinque giorni non entra più nella borsa gratuita. Nel trolley da 55 × 40 × 20 cm ci sta con circa ${liters(christmasTrolleyRoom, "it")} in avanzo, ma conviene guardare il peso:`,
+          ],
+          table: kitTable(christmasCabinKit, 5, "it", true),
+          tip: `Il trolley Ryanair può pesare al massimo ${ryanairCabinKg} kg. Con un trolley rigido da circa ${TROLLEY_EMPTY_KG} kg e questa lista restano solo ${kilos(christmasGiftKg, "it")} per i regali. Un borsone morbido o uno zaino da viaggio pesano meno e lasciano più margine.`,
+        },
+        {
+          heading: "Regali ai controlli: cosa sapere",
+          paragraphs: ["Con solo bagaglio a mano tutti i regali passano dai controlli di sicurezza. Le cose da sapere prima di fare i pacchetti:"],
+          list: [
+            "Marmellate, creme spalmabili, miele, olio, vino e liquori contano come liquidi: oltre i 100 ml non passano.",
+            "Anche le palle di neve con il liquido dentro sono considerate liquidi.",
+            "Panettone, pandoro, torrone e cioccolato sono solidi e passano, ma occupano molto spazio.",
+            "I pacchetti incartati possono essere aperti se lo scanner non mostra bene il contenuto: meglio incartare all'arrivo o usare sacchetti regalo.",
+            "Regali con batterie al litio, come power bank e cuffie, vanno comunque nel bagaglio a mano: è l'unico posto dove sono ammessi.",
+            "Per i regali ingombranti conviene ordinarli online con consegna direttamente a destinazione.",
+          ],
+        },
+        {
+          heading: "Come sistemare lo zaino",
+          paragraphs: ["In inverno i vestiti sono più spessi: l'ordine conta ancora di più."],
+          list: [
+            "Sul fondo, contro la schiena, i vestiti più pesanti arrotolati.",
+            "Calze e intimo negli spazi vuoti e dentro le scarpe, se ne porti un paio.",
+            "Sopra, i regali piccoli protetti tra i maglioni.",
+            "In alto il beauty e la busta dei liquidi, da tirare fuori ai controlli.",
+            "Tasche esterne quasi vuote: sono loro a far superare i 20 cm di profondità.",
+          ],
+          illustration: "packed-depth",
+          productPicks: true,
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            `Per quattro giorni di Natale la borsa gratuita basta se indossi in volo cappotto, stivali e maglione: restano circa ${liters(christmasGiftRoom, "it")} per i regali. Per cinque giorni con la cena elegante serve il trolley, e lì attenzione al peso. Niente regali liquidi oltre i 100 ml, e incarta all'arrivo.`,
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "The short answer: yes, but gifts change the maths",
+          paragraphs: [
+            `Four winter days fit in the free 40 × 30 × 20 cm bag, as long as you wear your coat, boots and thick sweater on the plane. With the list below there's about ${liters(christmasGiftRoom, "en")} left for gifts: enough for a few small presents, not for a panettone.`,
+            "If you stay five days and need an outfit for Christmas dinner, the free bag is no longer enough: you need the 55 × 40 × 20 cm trolley. And there the limit becomes weight, not space.",
+            "All volumes come from our planner, the same ones we use in the other packing lists.",
+          ],
+        },
+        {
+          heading: "The sizes to stay within",
+          paragraphs: [
+            "Taking Ryanair as the reference: its free 40 × 30 × 20 cm bag is the same as Wizz Air's and Vueling's, while easyJet allows 45 × 36 × 20 cm. The overhead trolley almost always costs extra.",
+          ],
+          table: airlineRulesTable("ryanair", "en", { personal: "Included", cabin: "Paid (Priority & 2 cabin bags)" }),
+          tip: "In December flights are full and paid cabin bags sell out early: if you need one, add it when booking, it costs less than at the gate.",
+        },
+        {
+          heading: "The 4-day list for the free bag",
+          paragraphs: [
+            "Built for Christmas with family, 23 to 26 December: on the plane you wear your coat, boots, jeans and thickest sweater. In the backpack:",
+          ],
+          table: kitTable(christmasFreeBagKit, 4, "en"),
+          illustration: "christmas-fill",
+        },
+        {
+          heading: "What to wear on the plane",
+          paragraphs: [
+            `What you wear doesn't count towards the size. In winter it's the most important trick: coat, boots and sweater together take about ${liters(christmasWornLiters, "en")}, more than a third of the free bag.`,
+          ],
+          illustration: "winter-wear",
+          list: [
+            "Your coat or puffer jacket: take it off and fold it on your lap once seated.",
+            "Your boots or heaviest shoes: never in the bag.",
+            "Your thickest sweater, over a T-shirt: you can take it off on board.",
+            "Scarf, beanie and gloves in the coat pockets.",
+            "Jeans or heavy trousers on, light ones in the bag.",
+          ],
+        },
+        {
+          heading: "How much room is left for gifts",
+          paragraphs: [
+            "The planner adds a margin to the clothes for the trip length and for the gaps between items. Whatever is left is room for gifts. Four cases:",
+          ],
+          table: christmasScenarioTable("en"),
+          tip: "If the coat and boots go in the bag, the room for gifts disappears entirely. It's the mistake behind most gate fees in December.",
+        },
+        {
+          heading: "5 days with Christmas dinner: you need the trolley",
+          paragraphs: [
+            `A shirt, smart shoes and a second sweater make the difference: the five-day list no longer fits in the free bag. In a 55 × 40 × 20 cm trolley it fits with about ${liters(christmasTrolleyRoom, "en")} to spare, but watch the weight:`,
+          ],
+          table: kitTable(christmasCabinKit, 5, "en", true),
+          tip: `Ryanair's cabin trolley can weigh up to ${ryanairCabinKg} kg. With a hard-shell trolley of about ${TROLLEY_EMPTY_KG} kg and this list, only ${kilos(christmasGiftKg, "en")} is left for gifts. A soft duffel or a travel backpack weighs less and leaves more margin.`,
+        },
+        {
+          heading: "Gifts at security: what to know",
+          paragraphs: ["With hand luggage only, every gift goes through security. What to know before you wrap:"],
+          list: [
+            "Jams, spreads, honey, oil, wine and spirits count as liquids: over 100 ml they won't get through.",
+            "Snow globes with liquid inside count as liquids too.",
+            "Panettone, pandoro, nougat and chocolate are solids and are allowed, but they take a lot of room.",
+            "Wrapped presents may be opened if the scanner can't see what's inside: wrap them on arrival or use gift bags.",
+            "Gifts with lithium batteries, like power banks and headphones, must travel in hand luggage anyway: it's the only place they're allowed.",
+            "For bulky gifts, order online with delivery straight to your destination.",
+          ],
+        },
+        {
+          heading: "How to pack the bag",
+          paragraphs: ["In winter clothes are thicker, so the order matters even more."],
+          list: [
+            "Heaviest clothes rolled at the bottom, against your back.",
+            "Socks and underwear in the gaps, and inside shoes if you pack a pair.",
+            "Small gifts on top, cushioned between sweaters.",
+            "Toiletries and the liquids bag at the very top, ready for security.",
+            "Outer pockets almost empty: they're what pushes the depth past 20 cm.",
+          ],
+          illustration: "packed-depth",
+          productPicks: true,
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            `For four days at Christmas the free bag is enough if you wear your coat, boots and sweater on the plane: about ${liters(christmasGiftRoom, "en")} is left for gifts. For five days with a smart dinner you need the trolley, and then watch the weight. No liquid gifts over 100 ml, and wrap on arrival.`,
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks for Christmas in 40×30×20", it: "Zaini per Natale in 40×30×20" },
+      intro: {
+        en: "Travel backpacks around 20 L, checked against the 40×30×20 cm free-bag size when the maker states the dimensions.",
+        it: "Zaini da viaggio intorno ai 20 L, confrontati con le misure della borsa gratuita 40×30×20 cm quando il produttore le indica.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 18, max: 24 }, dimensionsCm: { height: 40, width: 30, depth: 20 } },
+    },
+    faq: {
+      it: [
+        { question: "Si può andare a casa per Natale solo con lo zaino gratuito?", answer: `Sì, per 3–4 giorni: la lista invernale occupa circa ${liters(neededLiters(christmasFreeBagKit, 4), "it")} con il margine, e la borsa 40 × 30 × 20 ne offre circa ${FREE_BAG_LITERS}. Indossa in volo cappotto, stivali e maglione.` },
+        { question: "Posso portare il panettone nel bagaglio a mano?", answer: "Sì, è un alimento solido. Il problema è lo spazio: nella sua scatola occupa buona parte della borsa gratuita. Se viaggi solo con lo zaino, conviene comprarlo a destinazione." },
+        { question: "Il vino o l'olio come regalo passano?", answer: "Non nel bagaglio a mano: sono liquidi e superano i 100 ml. Fanno eccezione gli acquisti al duty free dopo i controlli, nella busta sigillata, ma verifica le regole della compagnia." },
+        { question: "I regali incartati vengono aperti ai controlli?", answer: "Possono esserlo, se lo scanner non mostra chiaramente il contenuto. Per evitarlo, incartali all'arrivo o usa sacchetti regalo che si aprono senza rovinarli." },
+        { question: "Il cappotto conta come bagaglio?", answer: "No, se lo indossi. Il controllo riguarda la borsa, non quello che hai addosso: per questo in inverno conviene viaggiare con i capi più voluminosi." },
+      ],
+      en: [
+        { question: "Can I go home for Christmas with just the free bag?", answer: `Yes, for 3–4 days: the winter list takes about ${liters(neededLiters(christmasFreeBagKit, 4), "en")} with the margin, and the 40 × 30 × 20 bag offers about ${FREE_BAG_LITERS}. Wear your coat, boots and sweater on the plane.` },
+        { question: "Can I bring a panettone in hand luggage?", answer: "Yes, it's a solid food. The problem is space: in its box it takes up a good part of the free bag. If you're travelling with just a backpack, buy it at your destination." },
+        { question: "Can I bring wine or olive oil as a gift?", answer: "Not in hand luggage: they're liquids over 100 ml. Duty-free purchases made after security, in the sealed bag, are the exception, but check your airline's rules." },
+        { question: "Will wrapped gifts be opened at security?", answer: "They can be, if the scanner can't clearly show what's inside. To avoid it, wrap them on arrival or use gift bags that open without damage." },
+        { question: "Does my coat count as a bag?", answer: "Not if you wear it. Staff check the bag, not what you have on: that's why in winter it pays to travel in your bulkiest clothes." },
+      ],
+    },
+    cta: {
+      label: { en: "Check your own list", it: "Prova con la tua lista" },
+      text: { en: "Choose your airline, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli la compagnia, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
       href: "/backpack-configurator",
     },
   },

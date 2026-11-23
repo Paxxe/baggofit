@@ -1,5 +1,6 @@
 import { airlinesFor, cabinZeroModels } from "@/lib/data/cabinzero";
-import type { GuideIllustrationId } from "@/lib/data/guides";
+import { christmasFreeBagLayers, christmasWornItems, type ChristmasLayer, type GuideIllustrationId } from "@/lib/data/guides";
+import { packingItems } from "@/lib/data/packing-items";
 
 type Lang = "en" | "it";
 
@@ -137,7 +138,153 @@ function CabinZeroSizes({ language }: { language: Lang }) {
   );
 }
 
+const number = (value: number, language: Lang) => (Math.round(value * 10) / 10).toLocaleString(language === "it" ? "it-IT" : "en-GB");
+
+function Snowflake({ x, y, r }: { x: number; y: number; r: number }) {
+  const arms = [0, 60, 120].map((angle) => {
+    const rad = (angle * Math.PI) / 180;
+    return `M${x - Math.cos(rad) * r} ${y - Math.sin(rad) * r} L${x + Math.cos(rad) * r} ${y + Math.sin(rad) * r}`;
+  });
+  return <path d={arms.join(" ")} stroke="#6f8cff" strokeWidth={3} strokeLinecap="round" />;
+}
+
+function GiftBox({ x, y, size }: { x: number; y: number; size: number }) {
+  const s = size;
+  return (
+    <g strokeLinejoin="round">
+      <rect x={x} y={y} width={s} height={s * 0.8} rx={5} fill="#ff5b35" stroke={INK} strokeWidth={3.5} />
+      <rect x={x - 4} y={y - s * 0.18} width={s + 8} height={s * 0.22} rx={4} fill="#ff9168" stroke={INK} strokeWidth={3.5} />
+      <path d={`M${x + s / 2} ${y - s * 0.18} V${y + s * 0.8}`} stroke="#ffc531" strokeWidth={7} />
+      <path d={`M${x + s / 2} ${y - s * 0.18} Q${x + s * 0.18} ${y - s * 0.55} ${x + s * 0.12} ${y - s * 0.26} Z M${x + s / 2} ${y - s * 0.18} Q${x + s * 0.82} ${y - s * 0.55} ${x + s * 0.88} ${y - s * 0.26} Z`} fill="#ffc531" stroke={INK} strokeWidth={3} />
+    </g>
+  );
+}
+
+const layerStyle: Record<ChristmasLayer["key"], { fill: string; label: Record<Lang, string> }> = {
+  clothes: { fill: COLORS.cobalt.pocket, label: { it: "Vestiti", en: "Clothes" } },
+  electronics: { fill: COLORS.coral.pocket, label: { it: "Elettronica e documenti", en: "Electronics and documents" } },
+  toiletries: { fill: COLORS.sun.pocket, label: { it: "Beauty", en: "Toiletries" } },
+  margin: { fill: "#e7e9f3", label: { it: "Margine e spazi vuoti", en: "Margin and gaps" } },
+  gifts: { fill: "#fff", label: { it: "Spazio per i regali", en: "Room for gifts" } },
+};
+
+/** The free bag (front view) filled layer by layer with the 4-day Christmas list, to scale in liters. */
+function ChristmasFill({ language }: { language: Lang }) {
+  const { capacity, layers } = christmasFreeBagLayers();
+  const [x, y, w, h] = [150, 58, 210, 300];
+  const top = y + 14;
+  const inner = { top: top + 40, bottom: y + h - 8 };
+  const perLiter = (inner.bottom - inner.top) / capacity;
+  // Bands stacked from the bottom; labels at each band's middle, pushed up when two would overlap.
+  const bands = layers.map((layer, index) => {
+    const below = layers.slice(0, index).reduce((sum, item) => sum + item.liters, 0);
+    const height = layer.liters * perLiter;
+    return { ...layer, y: inner.bottom - below * perLiter - height, height };
+  });
+  const labels = bands.reduce<(typeof bands[number] & { ly: number })[]>((placed, band) => {
+    const previous = placed.at(-1)?.ly ?? Infinity;
+    return [...placed, { ...band, ly: Math.min(band.y + band.height / 2 + 6, previous - 44) }];
+  }, []);
+  const gifts = bands.find((band) => band.key === "gifts");
+  return (
+    <svg viewBox="0 0 720 400" role="img" aria-labelledby="xmas-fill-title">
+      <title id="xmas-fill-title">{language === "it" ? `Come si riempie la borsa gratuita da circa ${capacity} litri con la lista di Natale` : `How the roughly ${capacity}-liter free bag fills up with the Christmas list`}</title>
+      <defs>
+        <clipPath id="xmas-fill-body"><rect x={x} y={top} width={w} height={h - 14} rx={34} /></clipPath>
+        <pattern id="xmas-fill-hatch" width={10} height={10} patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0 V10" stroke="#c9cde0" strokeWidth={4} /></pattern>
+      </defs>
+      <Snowflake x={70} y={80} r={14} />
+      <Snowflake x={100} y={300} r={9} />
+      <Snowflake x={640} y={60} r={11} />
+      <Backpack x={x} y={y} w={w} h={h} color="coral" />
+      <g clipPath="url(#xmas-fill-body)">
+        <rect x={x} y={top} width={w} height={h} fill="#fff" />
+        {bands.map((band) => <g key={band.key}>
+          <rect x={x} y={band.y} width={w} height={band.height} fill={layerStyle[band.key].fill} />
+          {band.key === "margin" && <rect x={x} y={band.y} width={w} height={band.height} fill="url(#xmas-fill-hatch)" />}
+          <path d={`M${x} ${band.y} H${x + w}`} stroke={INK} strokeWidth={2.5} strokeDasharray={band.key === "gifts" ? "8 7" : undefined} />
+        </g>)}
+      </g>
+      <rect x={x} y={top} width={w} height={h - 14} rx={34} fill="none" stroke={INK} strokeWidth={4.5} />
+      <path d={`M${x + 18} ${top + 36} Q${x + w / 2} ${top + 14} ${x + w - 18} ${top + 36}`} fill="none" stroke={INK} strokeWidth={3.5} strokeLinecap="round" />
+      {gifts && gifts.height > 50 && <>
+        <GiftBox x={x + 44} y={gifts.y + gifts.height - 46} size={44} />
+        <GiftBox x={x + 112} y={gifts.y + gifts.height - 34} size={32} />
+      </>}
+      {labels.map((band) => <g key={band.key}>
+        <path d={`M${x + w + 10} ${band.y + band.height / 2} L${x + w + 40} ${band.ly - 6} H${x + w + 52}`} fill="none" stroke={INK} strokeWidth={2.5} strokeLinecap="round" />
+        <text x={x + w + 60} y={band.ly} className="figure-label">{layerStyle[band.key].label[language]}</text>
+        <text x={x + w + 60} y={band.ly + 20} className="figure-note">{language === "it" ? "circa " : "about "}{number(band.liters, language)} L</text>
+      </g>)}
+    </svg>
+  );
+}
+
+/** A coat on a hanger with the boots below: the bulky winter items worn on the plane, with their liters. */
+function WinterWear({ language }: { language: Lang }) {
+  const it = language === "it";
+  const volume = (id: string) => packingItems.find((item) => item.id === id)!;
+  const total = christmasWornItems.reduce((sum, id) => sum + volume(id).volumeLiters, 0);
+  const names: Record<string, Record<Lang, string>> = { sweater: { it: "Maglione", en: "Sweater" }, jacket: { it: "Cappotto", en: "Coat" }, boots: { it: "Stivali", en: "Boots" } };
+  const callout = (id: string, from: [number, number], ly: number) => {
+    const item = volume(id);
+    return <g key={id}>
+      <path d={`M${from[0]} ${from[1]} L${380} ${ly - 6} H${396}`} fill="none" stroke={INK} strokeWidth={2.5} strokeLinecap="round" />
+      <circle cx={from[0]} cy={from[1]} r={5} fill={INK} />
+      <text x={404} y={ly} className="figure-label">{names[id][language]}</text>
+      <text x={404} y={ly + 20} className="figure-note">{number(item.volumeLiters, language)} L</text>
+    </g>;
+  };
+  return (
+    <svg viewBox="0 0 640 400" role="img" aria-labelledby="winter-wear-title">
+      <title id="winter-wear-title">{it ? "Cappotto, maglione e stivali da indossare in volo invece di metterli nello zaino" : "Coat, sweater and boots to wear on the plane instead of packing them"}</title>
+      <Snowflake x={60} y={70} r={12} />
+      <Snowflake x={590} y={350} r={10} />
+      {/* hanger */}
+      <path d="M210 62 Q210 40 226 40 Q240 42 234 56" fill="none" stroke={INK} strokeWidth={4} strokeLinecap="round" />
+      <path d="M150 98 L210 66 L270 98" fill="none" stroke={INK} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+      {/* sleeves */}
+      <path d="M150 104 L100 290 L132 300 L168 170 Z" fill={COLORS.cobalt.shade} stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      <path d="M270 104 L320 290 L288 300 L252 170 Z" fill={COLORS.cobalt.shade} stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      {/* body */}
+      <path d="M146 98 L274 98 L292 318 Q210 332 128 318 Z" fill={COLORS.cobalt.body} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+      {/* sweater in the neckline */}
+      <path d="M184 98 L236 98 L210 142 Z" fill={COLORS.sun.body} stroke={INK} strokeWidth={3.5} strokeLinejoin="round" />
+      <path d="M190 104 L210 136 M200 100 L214 124 M230 104 L218 124" stroke={COLORS.sun.shade} strokeWidth={2.5} strokeLinecap="round" />
+      <path d="M184 98 L210 142 L236 98" fill="none" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      <path d="M210 142 V324" stroke={INK} strokeWidth={3} />
+      {[178, 218, 258].map((cy) => <circle key={cy} cx={222} cy={cy} r={5.5} fill={COLORS.sun.body} stroke={INK} strokeWidth={2.5} />)}
+      <rect x={150} y={238} width={40} height={30} rx={8} fill={COLORS.cobalt.pocket} stroke={INK} strokeWidth={3.5} />
+      <rect x={236} y={238} width={40} height={30} rx={8} fill={COLORS.cobalt.pocket} stroke={INK} strokeWidth={3.5} />
+      <path d="M158 132 V196" stroke="#fff" strokeOpacity={0.55} strokeWidth={5} strokeLinecap="round" />
+      {/* scarf */}
+      <path d="M160 96 Q210 118 260 96 L262 112 Q210 134 158 112 Z" fill={COLORS.coral.body} stroke={INK} strokeWidth={3.5} strokeLinejoin="round" />
+      <path d="M236 116 L258 112 L262 200 L242 202 Z" fill={COLORS.coral.body} stroke={INK} strokeWidth={3.5} strokeLinejoin="round" />
+      <path d="M244 202 V214 M252 201 V213 M260 200 V212" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+      {/* boots */}
+      <path d="M150 334 V376 H214 Q216 360 198 356 L184 352 V334 Z" fill="#9b6a43" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      <path d="M230 334 V376 H294 Q296 360 278 356 L264 352 V334 Z" fill="#9b6a43" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      <path d="M150 342 H184 M230 342 H264" stroke="#fff" strokeOpacity={0.7} strokeWidth={5} />
+      {callout("sweater", [222, 112], 92)}
+      {callout("jacket", [282, 210], 176)}
+      {callout("boots", [290, 360], 322)}
+      <g transform="rotate(-5 510 250)">
+        <rect x={392} y={226} width={238} height={48} rx={24} fill="#ff5b35" stroke={INK} strokeWidth={3.5} />
+        <text x={511} y={257} textAnchor="middle" className="figure-badge">{number(total, language)} L {it ? "fuori dallo zaino" : "out of the bag"}</text>
+      </g>
+    </svg>
+  );
+}
+
 const captions: Record<GuideIllustrationId, Record<Lang, string>> = {
+  "christmas-fill": {
+    it: "La lista per 4 giorni nella borsa gratuita, strato per strato: quello che resta in cima è lo spazio per i regali.",
+    en: "The 4-day list in the free bag, layer by layer: what's left at the top is room for gifts.",
+  },
+  "winter-wear": {
+    it: "Quello che indossi non conta nelle misure: in inverno sono i capi più ingombranti a viaggiare addosso.",
+    en: "What you wear doesn't count towards the size: in winter the bulkiest items travel on you.",
+  },
   "sizer-40x30x20": {
     it: "Il misuratore al gate: lo zaino deve entrare tutto, maniglie e tasche comprese. Conta la misura esterna, non i litri.",
     en: "The sizer at the gate: the whole bag must fit, handles and pockets included. Outer size counts, not liters.",
@@ -161,6 +308,8 @@ export function GuideIllustration({ id, language }: { id: GuideIllustrationId; l
         {id === "sizer-40x30x20" && <Sizer language={language} />}
         {id === "packed-depth" && <PackedDepth language={language} />}
         {id === "cabinzero-sizes" && <CabinZeroSizes language={language} />}
+        {id === "christmas-fill" && <ChristmasFill language={language} />}
+        {id === "winter-wear" && <WinterWear language={language} />}
       </div>
       {id === "cabinzero-sizes" && <div className="guide-figure-legend">
         {cabinZeroModels.map((model) => {
