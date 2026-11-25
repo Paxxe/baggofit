@@ -304,6 +304,50 @@ const universalCabin = universalSize("cabin-bag");
 const universalPersonal = universalSize("personal-item");
 const airlineCount = airlines.filter((airline) => getVerifiedPolicy(airline.id)).length;
 
+/* ------------------------------------------------------------------ liquids in hand luggage */
+
+/** Share of the ~18 L free bag taken by the 1 L liquids bag and by a 2 L bottle. */
+const liquidsBagShare = Math.round((1 / FREE_BAG_LITERS) * 100);
+const twoLiterShare = Math.round((2 / FREE_BAG_LITERS) * 100);
+
+function liquidsAirportTable(language: Lang) {
+  const it = language === "it";
+  const up2 = it ? "Fino a 2 L per contenitore" : "Up to 2 L per container";
+  const ml100 = it ? "100 ml, busta da 1 L" : "100 ml, 1 L bag";
+  return {
+    head: it ? ["Aeroporto", "Limite per contenitore", "Note"] : ["Airport", "Limit per container", "Notes"],
+    rows: [
+      ["Roma Fiumicino", up2, it ? "Dal 26 luglio 2025, secondo ADR. Voli per USA e Israele: segnalato il limite di 100 ml" : "Since 26 July 2025, according to ADR. Flights to the US and Israel: 100 ml limit reported"],
+      ["Milano Linate", up2, it ? "Dal 26 luglio 2025" : "Since 26 July 2025"],
+      ["Milano Malpensa T1", up2, it ? "Dal 26 luglio 2025" : "Since 26 July 2025"],
+      ["Milano Malpensa T2", ml100, it ? "2 L solo al fast track, secondo la stampa locale" : "2 L only at fast track, according to local press"],
+      [it ? "Bologna, Torino" : "Bologna, Turin", it ? "Da verificare" : "Check first", it ? "Citati dalla stampa, non sempre per tutti i varchi" : "Mentioned by the press, not always at every lane"],
+      [it ? "Gran parte degli altri aeroporti UE" : "Most other EU airports", ml100, it ? "La regola standard della Commissione europea" : "The European Commission's standard rule"],
+    ],
+  };
+}
+
+function liquidsWhatCountsTable(language: Lang) {
+  const it = language === "it";
+  const yes = it ? "Sì" : "Yes";
+  const no = it ? "No" : "No";
+  const rows: [Record<Lang, string>, string, Record<Lang, string>][] = [
+    [{ it: "Dentifricio in tubetto", en: "Toothpaste tube" }, yes, { it: "Conta la capienza del tubetto, non quanto ne resta", en: "The tube's capacity counts, not what's left in it" }],
+    [{ it: "Mascara, lucidalabbra, fondotinta", en: "Mascara, lip gloss, foundation" }, yes, { it: "Sono gel o creme", en: "They're gels or creams" }],
+    [{ it: "Deodorante spray", en: "Spray deodorant" }, yes, { it: "Gli aerosol contano come liquidi", en: "Aerosols count as liquids" }],
+    [{ it: "Deodorante stick, rossetto", en: "Stick deodorant, lipstick" }, no, { it: "Sono solidi", en: "They're solids" }],
+    [{ it: "Shampoo e balsamo solidi", en: "Shampoo and conditioner bars" }, no, { it: "La scelta che fa risparmiare più spazio", en: "The biggest space saver" }],
+    [{ it: "Creme spalmabili, yogurt, miele", en: "Spreads, yogurt, honey" }, yes, { it: "Anche il cibo cremoso conta", en: "Creamy food counts too" }],
+    [{ it: "Formaggi stagionati, panini, biscotti", en: "Hard cheese, sandwiches, biscuits" }, no, { it: "Il cibo solido passa", en: "Solid food is fine" }],
+    [{ it: "Acqua e bibite", en: "Water and drinks" }, yes, { it: "Borraccia vuota ai controlli, poi la riempi", en: "Empty bottle at security, fill it after" }],
+    [{ it: "Medicinali e latte per neonati", en: "Medicines and baby milk" }, it ? "Esenti" : "Exempt", { it: "Anche oltre 100 ml, se servono durante il viaggio", en: "Even over 100 ml, if needed during the trip" }],
+  ];
+  return {
+    head: it ? ["Cosa", "Conta come liquido?", "Note"] : ["Item", "Counts as liquid?", "Notes"],
+    rows: rows.map(([item, answer, note]) => [item[language], answer, note[language]]),
+  };
+}
+
 export interface GuideSection {
   heading: string;
   paragraphs: string[];
@@ -318,7 +362,7 @@ export interface GuideSection {
   illustration?: GuideIllustrationId;
 }
 
-export type GuideIllustrationId = "sizer-40x30x20" | "packed-depth" | "cabinzero-sizes" | "christmas-fill" | "winter-wear";
+export type GuideIllustrationId = "sizer-40x30x20" | "packed-depth" | "cabinzero-sizes" | "christmas-fill" | "winter-wear" | "liquids-rules" | "solid-swaps";
 
 export interface TravelGuide {
   slug: string;
@@ -2464,7 +2508,7 @@ export const guides: TravelGuide[] = [
   {
     slug: "christmas-hand-luggage-only",
     published: "2026-11-23",
-    updated: "2026-11-23",
+    updated: "2026-11-25",
     category: { en: "Packing", it: "Come fare lo zaino" },
     title: {
       en: "Christmas with hand luggage only: what to pack (and where the gifts go)",
@@ -2534,7 +2578,7 @@ export const guides: TravelGuide[] = [
           heading: "Regali ai controlli: cosa sapere",
           paragraphs: ["Con solo bagaglio a mano tutti i regali passano dai controlli di sicurezza. Le cose da sapere prima di fare i pacchetti:"],
           list: [
-            "Marmellate, creme spalmabili, miele, olio, vino e liquori contano come liquidi: oltre i 100 ml non passano.",
+            "Marmellate, creme spalmabili, miele, olio, vino e liquori contano come liquidi: nella maggior parte degli aeroporti oltre i 100 ml non passano. Solo alcuni scali con i nuovi scanner accettano contenitori fino a 2 litri.",
             "Anche le palle di neve con il liquido dentro sono considerate liquidi.",
             "Panettone, pandoro, torrone e cioccolato sono solidi e passano, ma occupano molto spazio.",
             "I pacchetti incartati possono essere aperti se lo scanner non mostra bene il contenuto: meglio incartare all'arrivo o usare sacchetti regalo.",
@@ -2621,7 +2665,7 @@ export const guides: TravelGuide[] = [
           heading: "Gifts at security: what to know",
           paragraphs: ["With hand luggage only, every gift goes through security. What to know before you wrap:"],
           list: [
-            "Jams, spreads, honey, oil, wine and spirits count as liquids: over 100 ml they won't get through.",
+            "Jams, spreads, honey, oil, wine and spirits count as liquids: at most airports anything over 100 ml won't get through. Only some airports with new scanners accept containers up to 2 liters.",
             "Snow globes with liquid inside count as liquids too.",
             "Panettone, pandoro, nougat and chocolate are solids and are allowed, but they take a lot of room.",
             "Wrapped presents may be opened if the scanner can't see what's inside: wrap them on arrival or use gift bags.",
@@ -2662,20 +2706,213 @@ export const guides: TravelGuide[] = [
       it: [
         { question: "Si può andare a casa per Natale solo con lo zaino gratuito?", answer: `Sì, per 3–4 giorni: la lista invernale occupa circa ${liters(neededLiters(christmasFreeBagKit, 4), "it")} con il margine, e la borsa 40 × 30 × 20 ne offre circa ${FREE_BAG_LITERS}. Indossa in volo cappotto, stivali e maglione.` },
         { question: "Posso portare il panettone nel bagaglio a mano?", answer: "Sì, è un alimento solido. Il problema è lo spazio: nella sua scatola occupa buona parte della borsa gratuita. Se viaggi solo con lo zaino, conviene comprarlo a destinazione." },
-        { question: "Il vino o l'olio come regalo passano?", answer: "Non nel bagaglio a mano: sono liquidi e superano i 100 ml. Fanno eccezione gli acquisti al duty free dopo i controlli, nella busta sigillata, ma verifica le regole della compagnia." },
+        { question: "Il vino o l'olio come regalo passano?", answer: "Di solito no: sono liquidi e superano i 100 ml. Alcuni aeroporti con i nuovi scanner, come Roma Fiumicino e Milano Linate, accettano contenitori fino a 2 litri, ma al ritorno vale la regola dello scalo di partenza. Fanno eccezione anche gli acquisti al duty free dopo i controlli, nella busta sigillata, ma verifica le regole della compagnia." },
         { question: "I regali incartati vengono aperti ai controlli?", answer: "Possono esserlo, se lo scanner non mostra chiaramente il contenuto. Per evitarlo, incartali all'arrivo o usa sacchetti regalo che si aprono senza rovinarli." },
         { question: "Il cappotto conta come bagaglio?", answer: "No, se lo indossi. Il controllo riguarda la borsa, non quello che hai addosso: per questo in inverno conviene viaggiare con i capi più voluminosi." },
       ],
       en: [
         { question: "Can I go home for Christmas with just the free bag?", answer: `Yes, for 3–4 days: the winter list takes about ${liters(neededLiters(christmasFreeBagKit, 4), "en")} with the margin, and the 40 × 30 × 20 bag offers about ${FREE_BAG_LITERS}. Wear your coat, boots and sweater on the plane.` },
         { question: "Can I bring a panettone in hand luggage?", answer: "Yes, it's a solid food. The problem is space: in its box it takes up a good part of the free bag. If you're travelling with just a backpack, buy it at your destination." },
-        { question: "Can I bring wine or olive oil as a gift?", answer: "Not in hand luggage: they're liquids over 100 ml. Duty-free purchases made after security, in the sealed bag, are the exception, but check your airline's rules." },
+        { question: "Can I bring wine or olive oil as a gift?", answer: "Usually not: they're liquids over 100 ml. Some airports with new scanners, such as Rome Fiumicino and Milan Linate, accept containers up to 2 liters, but on the way back the departure airport's rule applies. Duty-free purchases made after security, in the sealed bag, are also an exception, but check your airline's rules." },
         { question: "Will wrapped gifts be opened at security?", answer: "They can be, if the scanner can't clearly show what's inside. To avoid it, wrap them on arrival or use gift bags that open without damage." },
         { question: "Does my coat count as a bag?", answer: "Not if you wear it. Staff check the bag, not what you have on: that's why in winter it pays to travel in your bulkiest clothes." },
       ],
     },
     cta: {
       label: { en: "Check your own list", it: "Prova con la tua lista" },
+      text: { en: "Choose your airline, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli la compagnia, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
+      href: "/backpack-configurator",
+    },
+  },
+  {
+    slug: "liquids-hand-luggage-100ml-rule",
+    published: "2026-11-25",
+    updated: "2026-11-25",
+    category: { en: "Airline baggage", it: "Bagaglio aereo" },
+    title: {
+      en: "Liquids in hand luggage: the 100 ml rule and the airports that allow 2 liters",
+      it: "Liquidi nel bagaglio a mano: la regola dei 100 ml e gli aeroporti dove passano 2 litri",
+    },
+    description: {
+      en: "The EU 100 ml rule, the airports with new scanners that accept containers up to 2 liters, what counts as a liquid and how much room liquids take in a 40×30×20 backpack.",
+      it: "La regola UE dei 100 ml, gli aeroporti con i nuovi scanner che accettano contenitori fino a 2 litri, cosa conta come liquido e quanto spazio occupano i liquidi in uno zaino 40×30×20.",
+    },
+    sections: {
+      it: [
+        {
+          heading: "La risposta breve",
+          paragraphs: [
+            "Nell'Unione europea la regola standard non è cambiata: ogni contenitore di liquidi può avere al massimo 100 ml, e tutti devono stare in una busta trasparente richiudibile da 1 litro.",
+            "Dal 26 luglio 2025 alcuni aeroporti con scanner di nuova generazione, tra cui Roma Fiumicino e Milano Linate, accettano contenitori fino a 2 litri. Ma vale solo in quegli scali, e al ritorno conta l'aeroporto da cui riparti. Se non sei sicuro, prepara il bagaglio come se valesse la regola dei 100 ml.",
+          ],
+        },
+        {
+          heading: "La regola dei 100 ml, punto per punto",
+          paragraphs: ["Secondo le indicazioni della Commissione europea per i passeggeri:"],
+          list: [
+            "Ogni contenitore deve avere una capienza massima di 100 ml. Conta quello scritto sulla confezione, non quanto prodotto è rimasto.",
+            "Tutti i contenitori vanno in un'unica busta trasparente e richiudibile, da massimo 1 litro.",
+            "Una busta per passeggero, da mostrare separata ai controlli.",
+            "Per liquidi si intendono anche gel, creme, paste, lozioni, aerosol e cibi cremosi.",
+            "Medicinali essenziali, latte e alimenti per neonati sono ammessi anche oltre i 100 ml, se servono durante il viaggio.",
+            "I liquidi comprati al duty free possono viaggiare nel bagaglio a mano, nella busta sigillata con lo scontrino.",
+          ],
+          illustration: "liquids-rules",
+        },
+        {
+          heading: "Gli aeroporti dove passano 2 litri",
+          paragraphs: [
+            "I nuovi scanner (chiamati C3, o scanner CT) ricostruiscono il bagaglio in 3D e riconoscono i liquidi pericolosi senza aprire nulla. L'UE non obbliga gli aeroporti a installarli: ogni scalo decide quando e su quali varchi.",
+            "La situazione in Italia, secondo i gestori e la stampa:",
+          ],
+          table: liquidsAirportTable("it"),
+          tip: "Controlla sempre sia l'aeroporto di andata sia quello di ritorno. Una bottiglia da 1 litro che passa a Linate può essere buttata al ritorno da un aeroporto con scanner tradizionali.",
+        },
+        {
+          heading: "Cosa conta come liquido",
+          paragraphs: ["La regola è semplice: se si può versare, spalmare, spruzzare o spremere, è un liquido. Alcuni casi che creano dubbi:"],
+          table: liquidsWhatCountsTable("it"),
+        },
+        {
+          heading: "Quanto spazio prendono i liquidi nello zaino",
+          paragraphs: [
+            `La busta da 1 litro occupa circa il ${liquidsBagShare}% di uno zaino da ${FREE_BAG_LITERS} litri come quello della borsa gratuita 40 × 30 × 20. Con i 2 litri, invece, una sola bottiglia grande prende circa il ${twoLiterShare}% dello zaino e pesa 2 kg.`,
+            "Quindi la nuova regola non serve a molto se viaggi con la sola borsa gratuita: lo spazio e il peso restano il limite. È utile soprattutto per la borraccia piena o per chi ha anche il trolley.",
+          ],
+          tip: "Wizz Air pone un limite di 10 kg anche alla borsa sotto il sedile: due litri di liquidi sono già un quinto del peso consentito.",
+        },
+        {
+          heading: "Come risparmiare spazio con i solidi",
+          paragraphs: ["Il modo migliore per non pensare ai 100 ml è non portare liquidi. Le alternative solide occupano meno spazio e non vanno nella busta:"],
+          illustration: "solid-swaps",
+          list: [
+            "Shampoo e balsamo in barretta, in una scatolina di latta.",
+            "Deodorante stick al posto dello spray.",
+            "Dentifricio in pastiglie.",
+            "Crema solida in stick per viso e mani.",
+            "Detergente in fogli o saponetta.",
+          ],
+        },
+        {
+          heading: "Come preparare la busta",
+          paragraphs: ["Pochi accorgimenti fanno risparmiare tempo ai controlli:"],
+          list: [
+            "Usa flaconi da viaggio riempibili, da 50–100 ml con la capienza scritta.",
+            "Chiudi i tappi con un giro di nastro: in quota la pressione fa uscire i liquidi.",
+            "Tieni la busta in cima allo zaino o in una tasca esterna, per tirarla fuori subito.",
+            "La borraccia passa vuota: la riempi dopo i controlli.",
+            "Se hai un medicinale liquido, porta la ricetta o la confezione originale.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In breve",
+          paragraphs: [
+            "La regola standard resta 100 ml per contenitore in una busta da 1 litro. Alcuni aeroporti con i nuovi scanner, come Roma Fiumicino e Milano Linate, accettano fino a 2 litri, ma al ritorno vale la regola dell'aeroporto di partenza. Nel dubbio, prepara la busta da 100 ml e passa ai solidi: risparmi spazio e non rischi di buttare niente.",
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: "The short answer",
+          paragraphs: [
+            "In the European Union the standard rule hasn't changed: each liquid container can hold at most 100 ml, and they all go in one resealable clear bag of 1 liter.",
+            "Since 26 July 2025 some airports with new-generation scanners, including Rome Fiumicino and Milan Linate, accept containers up to 2 liters. But that only applies at those airports, and on the way back the airport you leave from is what counts. If you're not sure, pack as if the 100 ml rule applies.",
+          ],
+        },
+        {
+          heading: "The 100 ml rule, point by point",
+          paragraphs: ["According to the European Commission's guidance for passengers:"],
+          list: [
+            "Each container can have a capacity of up to 100 ml. What's printed on the pack counts, not how much is left.",
+            "All containers go in a single clear, resealable bag of up to 1 liter.",
+            "One bag per passenger, taken out at security.",
+            "Liquids include gels, creams, pastes, lotions, aerosols and creamy food.",
+            "Essential medicines, baby milk and baby food are allowed over 100 ml, if needed during the trip.",
+            "Liquids bought at duty free can travel in hand luggage, in the sealed bag with the receipt.",
+          ],
+          illustration: "liquids-rules",
+        },
+        {
+          heading: "The airports where 2 liters are allowed",
+          paragraphs: [
+            "The new scanners (called C3, or CT scanners) build a 3D image of the bag and detect dangerous liquids without opening anything. The EU doesn't require airports to install them: each airport decides when and at which lanes.",
+            "The situation in Italy, according to the airport operators and the press:",
+          ],
+          table: liquidsAirportTable("en"),
+          tip: "Always check both your outbound and your return airport. A 1-liter bottle that goes through at Linate can be thrown away on the way back at an airport with standard scanners.",
+        },
+        {
+          heading: "What counts as a liquid",
+          paragraphs: ["The rule is simple: if you can pour, spread, spray or squeeze it, it's a liquid. Some cases that cause doubts:"],
+          table: liquidsWhatCountsTable("en"),
+        },
+        {
+          heading: "How much room liquids take in the bag",
+          paragraphs: [
+            `The 1-liter bag takes about ${liquidsBagShare}% of an ${FREE_BAG_LITERS}-liter backpack like the free 40 × 30 × 20 bag. With the 2-liter rule, a single big bottle takes about ${twoLiterShare}% of the bag and weighs 2 kg.`,
+            "So the new rule doesn't help much if you travel with just the free bag: space and weight are still the limit. It's mostly useful for a full water bottle or if you also have a trolley.",
+          ],
+          tip: "Wizz Air also sets a 10 kg limit on the under-seat bag: two liters of liquids are already a fifth of the allowed weight.",
+        },
+        {
+          heading: "How to save space with solids",
+          paragraphs: ["The best way to forget about 100 ml is not to bring liquids. Solid alternatives take less room and don't go in the bag:"],
+          illustration: "solid-swaps",
+          list: [
+            "Shampoo and conditioner bars, in a small tin.",
+            "Stick deodorant instead of a spray.",
+            "Toothpaste tablets.",
+            "A solid stick moisturiser for face and hands.",
+            "Cleansing sheets or a bar of soap.",
+          ],
+        },
+        {
+          heading: "How to pack the liquids bag",
+          paragraphs: ["A few habits save time at security:"],
+          list: [
+            "Use refillable travel bottles of 50–100 ml with the capacity printed on them.",
+            "Tape the caps: cabin pressure pushes liquids out.",
+            "Keep the bag at the top of the backpack or in an outer pocket, so you can take it out quickly.",
+            "Your water bottle goes through empty: fill it after security.",
+            "For a liquid medicine, bring the prescription or the original pack.",
+          ],
+          productPicks: true,
+        },
+        {
+          heading: "In short",
+          paragraphs: [
+            "The standard rule is still 100 ml per container in a 1-liter bag. Some airports with new scanners, such as Rome Fiumicino and Milan Linate, accept up to 2 liters, but on the way back the departure airport's rule applies. When in doubt, pack the 100 ml bag and switch to solids: you save space and won't have to throw anything away.",
+          ],
+        },
+      ],
+    },
+    products: {
+      heading: { en: "Backpacks with a quick-access pocket", it: "Zaini con tasca ad accesso rapido" },
+      intro: {
+        en: "Travel backpacks for the 40×30×20 free bag: keep the liquids bag in the top or front pocket.",
+        it: "Zaini da viaggio per la borsa gratuita 40×30×20: tieni la busta dei liquidi nella tasca in alto o davanti.",
+      },
+      criteria: { productKind: "backpack", backpackType: "travel", capacityRangeLiters: { min: 16, max: 22 }, dimensionsCm: { height: 40, width: 30, depth: 20 } },
+    },
+    faq: {
+      it: [
+        { question: "La regola dei 100 ml è stata abolita?", answer: "No. Nell'UE resta la regola standard. Solo alcuni aeroporti con scanner di nuova generazione accettano contenitori fino a 2 litri, e non sempre su tutti i varchi." },
+        { question: "In quali aeroporti italiani posso portare 2 litri?", answer: "Dal 26 luglio 2025 Roma Fiumicino, Milano Linate e Malpensa Terminal 1; la stampa cita anche Bologna e Torino (fast track). La lista cambia: controlla il sito dell'aeroporto prima di partire." },
+        { question: "Un tubetto da 150 ml mezzo vuoto passa?", answer: "No, con la regola dei 100 ml conta la capienza del contenitore, non quanto ne resta dentro." },
+        { question: "La borraccia si può portare?", answer: "Sì, vuota. La riempi dopo i controlli, alle fontanelle o ai bar dell'area imbarchi." },
+        { question: "E al ritorno?", answer: "Vale la regola dell'aeroporto da cui riparti. Se ha scanner tradizionali, torna il limite dei 100 ml, anche se all'andata hai portato 2 litri." },
+      ],
+      en: [
+        { question: "Has the 100 ml rule been scrapped?", answer: "No. The standard rule still applies in the EU. Only some airports with new-generation scanners accept containers up to 2 liters, and not always at every lane." },
+        { question: "Which Italian airports allow 2 liters?", answer: "Since 26 July 2025, Rome Fiumicino, Milan Linate and Malpensa Terminal 1; the press also mentions Bologna and Turin (fast track). The list changes: check the airport's website before you fly." },
+        { question: "Does a half-empty 150 ml tube get through?", answer: "No: under the 100 ml rule the container's capacity counts, not how much is left in it." },
+        { question: "Can I bring a water bottle?", answer: "Yes, empty. Fill it after security, at the fountains or cafés in the departure area." },
+        { question: "What about the way back?", answer: "The rule of the airport you leave from applies. If it has standard scanners, the 100 ml limit is back, even if you carried 2 liters on the way out." },
+      ],
+    },
+    cta: {
+      label: { en: "Check what fits", it: "Verifica cosa ci sta" },
       text: { en: "Choose your airline, the days and what you're bringing: we'll tell you if the free bag is enough.", it: "Scegli la compagnia, i giorni e cosa porti: ti diciamo se la borsa gratuita basta." },
       href: "/backpack-configurator",
     },

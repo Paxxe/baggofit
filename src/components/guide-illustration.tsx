@@ -276,7 +276,121 @@ function WinterWear({ language }: { language: Lang }) {
   );
 }
 
+/** A cartoon bottle standing on `bottom`. */
+function Bottle({ x, bottom, w, h, fill, label }: { x: number; bottom: number; w: number; h: number; fill: string; label?: string }) {
+  const top = bottom - h;
+  return (
+    <g strokeLinejoin="round">
+      <rect x={x + w * 0.22} y={top - 30} width={w * 0.56} height={18} rx={4} fill={INK} />
+      <rect x={x + w * 0.3} y={top - 14} width={w * 0.4} height={18} fill="#fff" stroke={INK} strokeWidth={3.5} />
+      <rect x={x} y={top} width={w} height={h} rx={Math.min(14, w * 0.3)} fill={fill} stroke={INK} strokeWidth={4} />
+      <path d={`M${x + 9} ${top + 14} V${top + h * 0.55}`} stroke="#fff" strokeOpacity={0.6} strokeWidth={4} strokeLinecap="round" />
+      {label && <>
+        <rect x={x + 6} y={top + h * 0.42} width={w - 12} height={46} rx={6} fill="#fff" stroke={INK} strokeWidth={3} />
+        <text x={x + w / 2} y={top + h * 0.42 + 34} textAnchor="middle" className="figure-heading">{label}</text>
+      </>}
+    </g>
+  );
+}
+
+function Pill({ cx, y, text, fill, width }: { cx: number; y: number; text: string; fill: string; width: number }) {
+  return (
+    <g>
+      <rect x={cx - width / 2} y={y} width={width} height={42} rx={21} fill={fill} stroke={INK} strokeWidth={3.5} />
+      <text x={cx} y={y + 28} textAnchor="middle" className="figure-badge">{text}</text>
+    </g>
+  );
+}
+
+/** Standard scanners: 100 ml bottles in the 1 L bag. New C3 scanners: containers up to 2 L. */
+function LiquidsRules({ language }: { language: Lang }) {
+  const it = language === "it";
+  const small = [COLORS.coral.pocket, COLORS.sun.body, "#3ccf7a", COLORS.cobalt.pocket];
+  return (
+    <svg viewBox="0 0 720 400" role="img" aria-labelledby="liquids-title">
+      <title id="liquids-title">{it ? "Con gli scanner tradizionali flaconi da 100 ml in una busta da 1 litro; con i nuovi scanner contenitori fino a 2 litri" : "With standard scanners, 100 ml bottles in a 1-liter bag; with new scanners, containers up to 2 liters"}</title>
+      <Pill cx={175} y={22} width={270} fill={COLORS.cobalt.body} text={it ? "Scanner tradizionale" : "Standard scanner"} />
+      <Pill cx={545} y={22} width={270} fill="#ff5b35" text={it ? "Nuovi scanner C3" : "New C3 scanners"} />
+      <path d="M360 90 V350" stroke={INK} strokeWidth={3} strokeDasharray="8 9" strokeLinecap="round" />
+
+      {/* 1 L clear bag with four 100 ml bottles */}
+      <rect x={55} y={112} width={240} height={206} rx={18} fill="#e3f2ff" stroke={INK} strokeWidth={4} />
+      {small.map((fill, index) => <Bottle key={fill} x={78 + index * 54} bottom={302} w={40} h={84 + (index % 2) * 22} fill={fill} />)}
+      <rect x={55} y={112} width={240} height={34} rx={14} fill="#ff9168" stroke={INK} strokeWidth={4} />
+      <path d="M70 129 H280" stroke={INK} strokeWidth={3} strokeDasharray="6 6" />
+      <rect x={262} y={120} width={14} height={20} rx={4} fill={INK} />
+      <path d="M78 170 L112 156" stroke="#fff" strokeWidth={6} strokeLinecap="round" opacity={0.8} />
+      <circle cx={292} cy={300} r={30} fill={COLORS.sun.body} stroke={INK} strokeWidth={3.5} />
+      <text x={292} y={308} textAnchor="middle" className="figure-label">1 L</text>
+      <text x={175} y={356} textAnchor="middle" className="figure-label">{it ? "max 100 ml a flacone" : "max 100 ml per bottle"}</text>
+      <text x={175} y={380} textAnchor="middle" className="figure-note">{it ? "tutti in una busta da 1 litro" : "all in one 1-liter bag"}</text>
+
+      {/* new scanners: a 2 L bottle */}
+      <ellipse cx={530} cy={322} rx={110} ry={8} fill="rgba(28,31,58,0.15)" />
+      <Bottle x={455} bottom={318} w={110} h={196} fill={COLORS.cobalt.body} label="2 L" />
+      <Bottle x={590} bottom={318} w={40} h={90} fill={COLORS.coral.pocket} />
+      <circle cx={655} cy={128} r={22} fill="#3ccf7a" stroke={INK} strokeWidth={3.5} />
+      <path d="M645 128 L653 136 L666 120" fill="none" stroke={INK} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />
+      <text x={545} y={356} textAnchor="middle" className="figure-label">{it ? "fino a 2 L a contenitore" : "up to 2 L per container"}</text>
+      <text x={545} y={380} textAnchor="middle" className="figure-note">{it ? "solo negli aeroporti che li hanno" : "only at airports that have them"}</text>
+    </svg>
+  );
+}
+
+/** Three liquids and their solid swaps, which don't go in the liquids bag. */
+function SolidSwaps({ language }: { language: Lang }) {
+  const it = language === "it";
+  const ground = 200;
+  const arrow = (cx: number) => <path d={`M${cx - 26} ${ground - 50} H${cx + 14} M${cx + 4} ${ground - 60} L${cx + 16} ${ground - 50} L${cx + 4} ${ground - 40}`} fill="none" stroke={INK} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />;
+  const columns = [
+    { cx: 120, name: { it: "Shampoo", en: "Shampoo" }, swap: { it: "flacone → barretta", en: "bottle → bar" } },
+    { cx: 360, name: { it: "Deodorante", en: "Deodorant" }, swap: { it: "spray → stick", en: "spray → stick" } },
+    { cx: 600, name: { it: "Dentifricio", en: "Toothpaste" }, swap: { it: "tubetto → pastiglie", en: "tube → tablets" } },
+  ];
+  return (
+    <svg viewBox="0 0 720 290" role="img" aria-labelledby="swaps-title">
+      <title id="swaps-title">{it ? "Shampoo, deodorante e dentifricio nelle versioni solide, che non contano come liquidi" : "Shampoo, deodorant and toothpaste in solid versions, which don't count as liquids"}</title>
+      <path d={`M30 ${ground + 2} H690`} stroke={INK} strokeWidth={4} strokeLinecap="round" />
+      {/* shampoo bottle → bar in an open tin */}
+      <Bottle x={40} bottom={ground} w={48} h={96} fill={COLORS.cobalt.pocket} />
+      {arrow(120)}
+      <ellipse cx={180} cy={ground - 8} rx={44} ry={12} fill="#c9cde0" stroke={INK} strokeWidth={3.5} />
+      <rect x={146} y={ground - 46} width={68} height={36} rx={16} fill={COLORS.sun.pocket} stroke={INK} strokeWidth={4} />
+      <ellipse cx={180} cy={ground - 28} rx={18} ry={7} fill="none" stroke={COLORS.sun.shade} strokeWidth={3} />
+
+      {/* spray can → stick */}
+      <rect x={282} y={ground - 104} width={44} height={104} rx={10} fill={COLORS.coral.body} stroke={INK} strokeWidth={4} />
+      <rect x={292} y={ground - 122} width={24} height={18} rx={4} fill="#fff" stroke={INK} strokeWidth={3.5} />
+      <path d="M316 87 h12 M330 83 l8 -4 M330 91 l8 4" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+      <path d="M290 112 V170" stroke="#fff" strokeOpacity={0.6} strokeWidth={4} strokeLinecap="round" />
+      {arrow(360)}
+      <rect x={396} y={ground - 84} width={40} height={84} rx={8} fill={COLORS.cobalt.body} stroke={INK} strokeWidth={4} />
+      <rect x={396} y={ground - 100} width={40} height={22} rx={8} fill="#fff" stroke={INK} strokeWidth={3.5} />
+
+      {/* toothpaste tube → tablets */}
+      <path d={`M514 ${ground - 4} L522 ${ground - 70} Q540 ${ground - 82} 558 ${ground - 70} L566 ${ground - 4} Z`} fill="#fff" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      <rect x={530} y={ground - 92} width={20} height={18} rx={4} fill="#3ccf7a" stroke={INK} strokeWidth={3.5} />
+      <path d="M526 160 H554" stroke="#3ccf7a" strokeWidth={8} strokeLinecap="round" />
+      {arrow(600)}
+      {[[640, ground - 14], [670, ground - 14], [655, ground - 40]].map(([cx, cy]) => <ellipse key={`${cx}-${cy}`} cx={cx} cy={cy} rx={14} ry={11} fill="#fff" stroke={INK} strokeWidth={3.5} />)}
+
+      {columns.map((column) => <g key={column.cx}>
+        <text x={column.cx} y={ground + 42} textAnchor="middle" className="figure-label">{column.name[language]}</text>
+        <text x={column.cx} y={ground + 66} textAnchor="middle" className="figure-note">{column.swap[language]}</text>
+      </g>)}
+    </svg>
+  );
+}
+
 const captions: Record<GuideIllustrationId, Record<Lang, string>> = {
+  "liquids-rules": {
+    it: "La regola standard e quella dei nuovi scanner. Al ritorno vale sempre la regola dell'aeroporto di partenza.",
+    en: "The standard rule and the new-scanner rule. On the way back, the departure airport's rule always applies.",
+  },
+  "solid-swaps": {
+    it: "Le versioni solide non vanno nella busta dei liquidi e occupano meno spazio.",
+    en: "Solid versions don't go in the liquids bag and take less room.",
+  },
   "christmas-fill": {
     it: "La lista per 4 giorni nella borsa gratuita, strato per strato: quello che resta in cima è lo spazio per i regali.",
     en: "The 4-day list in the free bag, layer by layer: what's left at the top is room for gifts.",
@@ -310,6 +424,8 @@ export function GuideIllustration({ id, language }: { id: GuideIllustrationId; l
         {id === "cabinzero-sizes" && <CabinZeroSizes language={language} />}
         {id === "christmas-fill" && <ChristmasFill language={language} />}
         {id === "winter-wear" && <WinterWear language={language} />}
+        {id === "liquids-rules" && <LiquidsRules language={language} />}
+        {id === "solid-swaps" && <SolidSwaps language={language} />}
       </div>
       {id === "cabinzero-sizes" && <div className="guide-figure-legend">
         {cabinZeroModels.map((model) => {
